@@ -524,15 +524,20 @@ async function renderProfile(el) {
     : 100;
 
   const name = data.first_name || 'Игрок';
-  const initial = name[0].toUpperCase();
   const emoji_levels = ['👁','🔍','🧘','🎮','✨'];
   const lvl_emoji = emoji_levels[Math.min(data.level_num - 1, 4)];
+  
+  // Получаем аватар из Telegram
+  const userAvatar = tg.initDataUnsafe?.user?.photo_url || null;
 
   el.innerHTML = `
     <div class="page-title">Мой профиль</div>
     <div class="card">
       <div class="row" style="margin-bottom:14px">
-        <div class="avatar">${initial}</div>
+        ${userAvatar 
+          ? `<img src="${userAvatar}" alt="Avatar" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+          : `<div class="avatar">${name[0].toUpperCase()}</div>`
+        }
         <div class="col">
           <div style="font-size:18px;font-weight:700">${name}</div>
           ${data.username ? `<div class="text-muted">@${data.username}</div>` : ''}
@@ -585,21 +590,37 @@ async function renderProfile(el) {
     <div class="card">
       <div class="card-title">Реферальный код</div>
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="flex:1;background:var(--bg);border-radius:10px;padding:10px 14px;font-size:16px;font-weight:700;letter-spacing:.1em;font-family:monospace">${data.referral_code}</div>
-        <button class="btn btn-buy" style="padding:10px 14px" onclick="copyRef('${data.referral_code}')">Копировать</button>
+        <div style="flex:1;background:var(--bg);border-radius:10px;padding:10px 14px;font-size:16px;font-weight:700;letter-spacing:.1em;font-family:monospace;cursor:pointer" onclick="copyRefLink('${data.referral_code}')">${data.referral_code}</div>
+        <button class="btn btn-buy" style="padding:10px 14px" onclick="copyRefLink('${data.referral_code}')">Копировать</button>
       </div>
       <div class="text-muted mt-8">Приглашай друзей и получай по 50 очков за каждого!</div>
     </div>` : ''}
   `;
 }
 
-function copyRef(code) {
-  const text = `Привет! Присоединяйся к MindGame — игре для осознанности. Мой код: ${code}`;
+function copyRefLink(code) {
+  // Копируем полную ссылку на бота
+  const botUsername = 'Vadimbagautdinov_bot'; // Можно получить из API если нужно
+  const link = `https://t.me/${botUsername}?start=${code}`;
+  
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => toast('✅ Ссылка скопирована!'));
+    navigator.clipboard.writeText(link).then(() => {
+      toast('✅ Ссылка скопирована!');
+      // Haptic feedback
+      if (tg.HapticFeedback) {
+        tg.HapticFeedback.notificationOccurred('success');
+      }
+    }).catch(() => {
+      fallbackCopy(link);
+    });
   } else {
-    tg.switchInlineQuery(text);
+    fallbackCopy(link);
   }
+}
+
+function fallbackCopy(text) {
+  // Fallback для старых браузеров
+  tg.switchInlineQuery(`Привет! Присоединяйся к MindGame — игре для осознанности: ${text}`);
 }
 
 // ─── Triggers ─────────────────────────────────────────────────────────────────
