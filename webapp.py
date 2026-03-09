@@ -526,15 +526,24 @@ async function renderProfile(el) {
   const name = data.first_name || 'Игрок';
   const emoji_levels = ['👁','🔍','🧘','🎮','✨'];
   const lvl_emoji = emoji_levels[Math.min(data.level_num - 1, 4)];
-  
+
   // Получаем аватар из Telegram
   const userAvatar = tg.initDataUnsafe?.user?.photo_url || null;
 
+  // Получаем паттерны для графика эмоций
+  let patterns = null;
+  try {
+    const patternsData = await api('/api/patterns');
+    patterns = patternsData.patterns;
+  } catch(e) {}
+
   el.innerHTML = `
     <div class="page-title">Мой профиль</div>
+    
+    <!-- Карточка профиля -->
     <div class="card">
       <div class="row" style="margin-bottom:14px">
-        ${userAvatar 
+        ${userAvatar
           ? `<img src="${userAvatar}" alt="Avatar" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0">`
           : `<div class="avatar">${name[0].toUpperCase()}</div>`
         }
@@ -544,15 +553,41 @@ async function renderProfile(el) {
           <div class="mt-4"><span class="level-badge">${lvl_emoji} ${data.level_name}</span></div>
         </div>
       </div>
-      <div class="progress-wrap">
-        <div class="progress-label">
-          <span>⭐ ${data.points} очков</span>
-          <span>${data.next_threshold ? `до ур. ${data.level_num + 1}: ${data.next_threshold}` : 'Максимальный уровень!'}</span>
+      
+      <!-- Прогресс уровня с круговой диаграммой -->
+      <div style="display:flex;align-items:center;gap:16px;margin-top:16px">
+        <div style="position:relative;width:80px;height:80px">
+          <svg width="80" height="80" style="transform:rotate(-90deg)">
+            <circle cx="40" cy="40" r="36" fill="none" stroke="var(--bg)" stroke-width="8"/>
+            <circle cx="40" cy="40" r="36" fill="none" stroke="url(#gradient)" stroke-width="8" 
+              stroke-dasharray="${2 * Math.PI * 36}" 
+              stroke-dashoffset="${2 * Math.PI * 36 * (1 - progress/100)}" 
+              stroke-linecap="round"
+              style="transition:stroke-dashoffset 0.5s"/>
+            <defs>
+              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:var(--accent)"/>
+                <stop offset="100%" style="stop-color:var(--accent2)"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
+            <div style="font-size:18px;font-weight:800;color:var(--accent2)">${progress}%</div>
+          </div>
         </div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+        <div style="flex:1">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px">
+            ${data.next_threshold ? `До уровня ${data.level_num + 1}` : 'Максимальный уровень!'}
+          </div>
+          <div style="font-size:24px;font-weight:800;color:var(--text)">${data.points} / ${data.next_threshold || '∞'}</div>
+          <div class="progress-bar" style="margin-top:8px">
+            <div class="progress-fill" style="width:${progress}%"></div>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- Основная статистика -->
     <div class="stats">
       <div class="stat">
         <div class="stat-v">${data.trigger_count}</div>
@@ -568,33 +603,82 @@ async function renderProfile(el) {
       </div>
     </div>
 
+    <!-- Недельная активность -->
     <div class="card">
-      <div class="card-title">За эту неделю</div>
-      <div style="display:flex;justify-content:space-around;text-align:center">
+      <div class="card-title">📊 За эту неделю</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center">
         <div>
-          <div style="font-size:24px;font-weight:800;color:#A855F7">${data.weekly.triggers}</div>
-          <div class="text-muted">триггеров</div>
+          <div style="font-size:28px;font-weight:800;color:#A855F7;margin-bottom:4px">${data.weekly.triggers}</div>
+          <div class="text-muted" style="font-size:12px">триггеров</div>
         </div>
         <div>
-          <div style="font-size:24px;font-weight:800;color:#10B981">${data.weekly.diary}</div>
-          <div class="text-muted">записей</div>
+          <div style="font-size:28px;font-weight:800;color:#10B981;margin-bottom:4px">${data.weekly.diary}</div>
+          <div class="text-muted" style="font-size:12px">записей</div>
         </div>
         <div>
-          <div style="font-size:24px;font-weight:800;color:#F59E0B">${data.weekly.points}</div>
-          <div class="text-muted">очков</div>
+          <div style="font-size:28px;font-weight:800;color:#F59E0B;margin-bottom:4px">${data.weekly.points}</div>
+          <div class="text-muted" style="font-size:12px">очков</div>
         </div>
       </div>
     </div>
 
+    <!-- График эмоций -->
+    ${patterns?.top_emotions?.length > 0 ? `
+    <div class="card">
+      <div class="card-title">💭 Топ эмоций</div>
+      ${patterns.top_emotions.slice(0, 5).map((e, i) => {
+        const max = patterns.top_emotions[0].count;
+        const width = Math.round((e.count / max) * 100);
+        const colors = ['#A855F7', '#10B981', '#F59E0B', '#EF4444', '#3B82F6'];
+        return `
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span>${EMOTIONS[e.emotion] || e.emotion}</span>
+            <span style="color:var(--muted)">${e.count}</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${width}%;background:${colors[i % colors.length]}"></div>
+          </div>
+        </div>
+        `;
+      }).join('')}
+    </div>
+    ` : ''}
+
+    <!-- Реферальный код -->
     ${data.referral_code ? `
     <div class="card">
-      <div class="card-title">Реферальный код</div>
+      <div class="card-title">🎁 Пригласи друга</div>
       <div style="display:flex;align-items:center;gap:10px">
         <div style="flex:1;background:var(--bg);border-radius:10px;padding:10px 14px;font-size:16px;font-weight:700;letter-spacing:.1em;font-family:monospace;cursor:pointer" onclick="copyRefLink('${data.referral_code}')">${data.referral_code}</div>
         <button class="btn btn-buy" style="padding:10px 14px" onclick="copyRefLink('${data.referral_code}')">Копировать</button>
       </div>
-      <div class="text-muted mt-8">Приглашай друзей и получай по 50 очков за каждого!</div>
-    </div>` : ''}
+      <div class="text-muted mt-8" style="font-size:13px">+50 очков за каждого друга!</div>
+    </div>
+    ` : ''}
+
+    <!-- Быстрые действия -->
+    <div class="card">
+      <div class="card-title">⚡ Быстрые действия</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        <button class="btn" style="background:var(--card2);color:var(--text);padding:12px" onclick="showTab('triggers')">
+          <span style="font-size:20px">📝</span>
+          <div style="font-size:13px;font-weight:600;margin-top:4px">Триггеры</div>
+        </button>
+        <button class="btn" style="background:var(--card2);color:var(--text);padding:12px" onclick="showTab('diary')">
+          <span style="font-size:20px">📔</span>
+          <div style="font-size:13px;font-weight:600;margin-top:4px">Дневник</div>
+        </button>
+        <button class="btn" style="background:var(--card2);color:var(--text);padding:12px" onclick="showTab('tasks')">
+          <span style="font-size:20px">✅</span>
+          <div style="font-size:13px;font-weight:600;margin-top:4px">Задачи</div>
+        </button>
+        <button class="btn" style="background:var(--card2);color:var(--text);padding:12px" onclick="showTab('shop')">
+          <span style="font-size:20px">🛍</span>
+          <div style="font-size:13px;font-weight:600;margin-top:4px">Магазин</div>
+        </button>
+      </div>
+    </div>
   `;
 }
 
