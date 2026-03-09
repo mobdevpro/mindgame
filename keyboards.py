@@ -49,7 +49,8 @@ def main_menu() -> ReplyKeyboardMarkup:
     if get_menu_setting("show_shop"):
         builder.row(KeyboardButton(text="🛍 Магазин"))
 
-    return builder.as_markup(resize_keyboard=True)
+    # Убираем кнопки вложений (скрепка, стикеры)
+    return builder.as_markup(resize_keyboard=True, is_persistent=True)
 
 
 def subscription_keyboard(channel_id: str) -> InlineKeyboardMarkup:
