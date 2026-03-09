@@ -276,7 +276,14 @@ SPA_HTML = """<!DOCTYPE html>
 
   /* Stats grid */
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-  .stat { background: var(--card2); border-radius: 12px; padding: 12px 8px; text-align: center; }
+  .stat { 
+    background: var(--card2); 
+    border-radius: 12px; 
+    padding: 12px 8px; 
+    text-align: center;
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
   .stat-v { font-size: 22px; font-weight: 800; color: var(--accent2); }
   .stat-l { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
@@ -542,28 +549,16 @@ async function renderProfile(el) {
   el.innerHTML = `
     <div class="page-title">Мой профиль</div>
     
-    <!-- Карточка профиля -->
+    <!-- Карточка профиля с круговой диаграммой вокруг аватара -->
     <div class="card">
-      <div class="row" style="margin-bottom:14px">
-        ${userAvatar
-          ? `<img src="${userAvatar}" alt="Avatar" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0">`
-          : `<div class="avatar">${name[0].toUpperCase()}</div>`
-        }
-        <div class="col">
-          <div style="font-size:18px;font-weight:700">${name}</div>
-          ${data.username ? `<div class="text-muted">@${data.username}</div>` : ''}
-          <div class="mt-4"><span class="level-badge">${lvl_emoji} ${data.level_name}</span></div>
-        </div>
-      </div>
-      
-      <!-- Прогресс уровня с круговой диаграммой -->
-      <div style="display:flex;align-items:center;gap:16px;margin-top:16px">
-        <div style="position:relative;width:80px;height:80px">
-          <svg width="80" height="80" style="transform:rotate(-90deg)">
-            <circle cx="40" cy="40" r="36" fill="none" stroke="var(--bg)" stroke-width="8"/>
-            <circle cx="40" cy="40" r="36" fill="none" stroke="url(#gradient)" stroke-width="8" 
-              stroke-dasharray="${2 * Math.PI * 36}" 
-              stroke-dashoffset="${2 * Math.PI * 36 * (1 - progress/100)}" 
+      <div class="row" style="align-items:center;gap:20px">
+        <!-- Аватар с круговым прогрессом вокруг -->
+        <div style="position:relative;width:100px;height:100px;flex-shrink:0">
+          <svg width="100" height="100" style="transform:rotate(-90deg)">
+            <circle cx="50" cy="50" r="45" fill="none" stroke="var(--bg)" stroke-width="10"/>
+            <circle cx="50" cy="50" r="45" fill="none" stroke="url(#gradient)" stroke-width="10" 
+              stroke-dasharray="${2 * Math.PI * 45}" 
+              stroke-dashoffset="${2 * Math.PI * 45 * (1 - progress/100)}" 
               stroke-linecap="round"
               style="transition:stroke-dashoffset 0.5s"/>
             <defs>
@@ -573,17 +568,19 @@ async function renderProfile(el) {
               </linearGradient>
             </defs>
           </svg>
-          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
-            <div style="font-size:18px;font-weight:800;color:var(--accent2)">${progress}%</div>
-          </div>
+          ${userAvatar
+            ? `<img src="${userAvatar}" alt="Avatar" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;object-fit:cover">`
+            : `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white">${name[0].toUpperCase()}</div>`
+          }
         </div>
-        <div style="flex:1">
-          <div style="font-size:13px;color:var(--muted);margin-bottom:6px">
-            ${data.next_threshold ? `До уровня ${data.level_num + 1}` : 'Максимальный уровень!'}
-          </div>
-          <div style="font-size:24px;font-weight:800;color:var(--text)">${data.points} / ${data.next_threshold || '∞'}</div>
-          <div class="progress-bar" style="margin-top:8px">
-            <div class="progress-fill" style="width:${progress}%"></div>
+        
+        <!-- Информация о пользователе -->
+        <div class="col" style="flex:1">
+          <div style="font-size:20px;font-weight:700;margin-bottom:4px">${name}</div>
+          ${data.username ? `<div class="text-muted" style="font-size:13px;margin-bottom:8px">@${data.username}</div>` : ''}
+          <div style="margin-bottom:8px"><span class="level-badge">${lvl_emoji} ${data.level_name}</span></div>
+          <div style="font-size:12px;color:var(--muted)">
+            ${data.next_threshold ? `До ур. ${data.level_num + 1}: ${data.next_threshold - data.points} очков` : 'Максимальный уровень!'}
           </div>
         </div>
       </div>
@@ -659,29 +656,6 @@ async function renderProfile(el) {
       <div class="text-muted mt-8" style="font-size:13px">+50 очков за каждого друга!</div>
     </div>
     ` : ''}
-
-    <!-- Быстрые действия -->
-    <div class="card">
-      <div class="card-title">⚡ Быстрые действия</div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-        <button class="btn" style="background:var(--card2);color:var(--text);padding:12px" onclick="showTab('triggers')">
-          <span style="font-size:20px">📝</span>
-          <div style="font-size:13px;font-weight:600;margin-top:4px">Триггеры</div>
-        </button>
-        <button class="btn" style="background:var(--card2);color:var(--text);padding:12px" onclick="showTab('diary')">
-          <span style="font-size:20px">📔</span>
-          <div style="font-size:13px;font-weight:600;margin-top:4px">Дневник</div>
-        </button>
-        <button class="btn" style="background:var(--card2);color:var(--text);padding:12px" onclick="showTab('tasks')">
-          <span style="font-size:20px">✅</span>
-          <div style="font-size:13px;font-weight:600;margin-top:4px">Задачи</div>
-        </button>
-        <button class="btn" style="background:var(--card2);color:var(--text);padding:12px" onclick="showTab('shop')">
-          <span style="font-size:20px">🛍</span>
-          <div style="font-size:13px;font-weight:600;margin-top:4px">Магазин</div>
-        </button>
-      </div>
-    </div>
   `;
   
   // Переключатель периодов
@@ -702,7 +676,7 @@ async function renderProfile(el) {
 
 function copyRefLink(code) {
   // Копируем полную ссылку на бота
-  const botUsername = 'Vadimbagautdinov_bot'; // Можно получить из API если нужно
+  const botUsername = 'Vadimbagautdinov_bot';
   const link = `https://t.me/${botUsername}?start=${code}`;
   
   if (navigator.clipboard) {
