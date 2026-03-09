@@ -420,6 +420,48 @@ async def get_weekly_stats(user_id: int) -> dict:
     }
 
 
+async def get_monthly_stats(user_id: int) -> dict:
+    """Статистика за месяц (30 дней)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("""
+            SELECT COUNT(*) FROM triggers
+            WHERE user_id = ? AND created_at >= datetime('now', '-30 days')
+        """, (user_id,)) as cursor:
+            triggers_month = (await cursor.fetchone())[0]
+
+        async with db.execute("""
+            SELECT COUNT(*) FROM diary_entries
+            WHERE user_id = ? AND created_at >= datetime('now', '-30 days')
+        """, (user_id,)) as cursor:
+            diary_month = (await cursor.fetchone())[0]
+
+        async with db.execute("""
+            SELECT COALESCE(SUM(points_delta), 0) FROM rewards_log
+            WHERE user_id = ? AND created_at >= datetime('now', '-30 days')
+        """, (user_id,)) as cursor:
+            points_month = (await cursor.fetchone())[0]
+
+    return {
+        "triggers": triggers_month,
+        "diary": diary_month,
+        "points": points_month,
+    }
+
+
+async def get_user_achievements_full(user_id: int) -> list[dict]:
+    """Получить достижения пользователя с иконками и названиями."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT a.code, a.title, a.icon, a.description, ua.awarded_at
+            FROM achievements a
+            JOIN user_achievements ua ON a.id = ua.achievement_id
+            WHERE ua.user_id = ?
+            ORDER BY ua.awarded_at DESC
+        """, (user_id,)) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+
 # ─── Tasks ────────────────────────────────────────────────────────────────────
 
 TASK_POINTS = {

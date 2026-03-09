@@ -138,6 +138,9 @@ async def api_me(request: Request):
     next_threshold = get_next_level_threshold(user["points_balance"])
     trigger_count = await db.count_triggers_total(user["id"])
     weekly = await db.get_weekly_stats(user["id"])
+    monthly = await db.get_monthly_stats(user["id"])
+    achievements = await db.get_user_achievements_full(user["id"])
+    
     return JSONResponse({
         "id": user["id"],
         "telegram_id": user["telegram_id"],
@@ -152,6 +155,8 @@ async def api_me(request: Request):
         "trigger_count": trigger_count,
         "referral_code": user["referral_code"],
         "weekly": weekly,
+        "monthly": monthly,
+        "achievements": achievements,
     })
 
 
@@ -228,6 +233,10 @@ SPA_HTML = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>MindGame</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- Подключаем приятные шрифты с поддержкой кириллицы -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0F0A1E;
@@ -245,7 +254,7 @@ SPA_HTML = """<!DOCTYPE html>
     --tab-h: 64px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Inter', 'Noto Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
 
   /* Layout */
   #app { display: flex; flex-direction: column; height: 100vh; }
@@ -263,7 +272,7 @@ SPA_HTML = """<!DOCTYPE html>
   .card-title { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
 
   /* Header */
-  .page-title { font-size: 22px; font-weight: 800; margin-bottom: 16px; }
+  .page-title { font-size: 24px; font-weight: 800; margin-bottom: 16px; letter-spacing: -0.02em; }
 
   /* Stats grid */
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
@@ -603,20 +612,26 @@ async function renderProfile(el) {
       </div>
     </div>
 
-    <!-- Недельная активность -->
+    <!-- Переключатель периодов -->
+    <div class="pills" id="periodToggle">
+      <button class="pill active" data-period="weekly">За неделю</button>
+      <button class="pill" data-period="monthly">За месяц</button>
+    </div>
+
+    <!-- Статистика за период -->
     <div class="card">
-      <div class="card-title">📊 За эту неделю</div>
+      <div class="card-title">📊 Активность</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center">
         <div>
-          <div style="font-size:28px;font-weight:800;color:#A855F7;margin-bottom:4px">${data.weekly.triggers}</div>
+          <div style="font-size:28px;font-weight:800;color:#A855F7;margin-bottom:4px" id="statTriggers">${data.weekly.triggers}</div>
           <div class="text-muted" style="font-size:12px">триггеров</div>
         </div>
         <div>
-          <div style="font-size:28px;font-weight:800;color:#10B981;margin-bottom:4px">${data.weekly.diary}</div>
+          <div style="font-size:28px;font-weight:800;color:#10B981;margin-bottom:4px" id="statDiary">${data.weekly.diary}</div>
           <div class="text-muted" style="font-size:12px">записей</div>
         </div>
         <div>
-          <div style="font-size:28px;font-weight:800;color:#F59E0B;margin-bottom:4px">${data.weekly.points}</div>
+          <div style="font-size:28px;font-weight:800;color:#F59E0B;margin-bottom:4px" id="statPoints">${data.weekly.points}</div>
           <div class="text-muted" style="font-size:12px">очков</div>
         </div>
       </div>
@@ -642,6 +657,24 @@ async function renderProfile(el) {
         </div>
         `;
       }).join('')}
+    </div>
+    ` : ''}
+
+    <!-- Достижения -->
+    ${data.achievements?.length > 0 ? `
+    <div class="card">
+      <div class="card-title">🏆 Достижения</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${data.achievements.map(a => `
+          <div style="background:var(--card2);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:8px">
+            <span style="font-size:24px">${a.icon}</span>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text)">${a.title}</div>
+              <div style="font-size:10px;color:var(--muted)">${new Date(a.awarded_at).toLocaleDateString('ru-RU')}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
     </div>
     ` : ''}
 
@@ -680,6 +713,21 @@ async function renderProfile(el) {
       </div>
     </div>
   `;
+  
+  // Переключатель периодов
+  document.querySelectorAll('#periodToggle .pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#periodToggle .pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const period = btn.dataset.period;
+      const stats = period === 'weekly' ? data.weekly : data.monthly;
+      
+      document.getElementById('statTriggers').textContent = stats.triggers;
+      document.getElementById('statDiary').textContent = stats.diary;
+      document.getElementById('statPoints').textContent = stats.points;
+    });
+  });
 }
 
 function copyRefLink(code) {
