@@ -6,7 +6,6 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import MenuButtonWebApp, WebAppInfo
 
 import config
 from config import BOT_TOKEN
@@ -59,20 +58,8 @@ async def main():
     config.BOT_USERNAME = me.username
     logger.info(f"Бот: @{me.username}")
 
-    # Set Mini App menu button (appears in chat input bar — most reliable Mini App launcher)
-    try:
-        # Use production URL for production bot, test URL for test bot
-        webapp_url = "https://vadbag.su/app" if not config.IS_TEST_ENV else "https://test-admin.vadbag.su/app"
-        
-        await bot.set_chat_menu_button(
-            menu_button=MenuButtonWebApp(
-                text="🎮 Приложение",
-                web_app=WebAppInfo(url=webapp_url)
-            )
-        )
-        logger.info(f"Mini App menu button configured: {webapp_url}")
-    except Exception as e:
-        logger.warning(f"Menu button setup failed (non-critical): {e}")
+    # Menu Button настраивается через @BotFather
+    # /setmenubutton → выбрать бота → URL приложения
 
     # Delete webhook if any (for local polling)
     await bot.delete_webhook(drop_pending_updates=True)
