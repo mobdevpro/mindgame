@@ -384,17 +384,17 @@ SPA_HTML = """<!DOCTYPE html>
 <script>
 const tg = window.Telegram.WebApp;
 tg.ready();
-tg.expand();  // Раскрыть на полный экран
-tg.enableClosingConfirmation();  // Подтверждение закрытия
-tg.MainButton.setParams({ text: "Продолжить", is_visible: false });  // Главная кнопка
 
-// Сообщить Telegram что WebApp готов
-tg.ready();
+// Раскрыть на полный экран (с повтором для надёжности)
+tg.expand();
+setTimeout(() => tg.expand(), 100);
+setTimeout(() => tg.expand(), 500);
 
-// Установить цвета темы
-if (tg.colorScheme) {
-  document.documentElement.style.setProperty('--tg-theme', tg.colorScheme);
-}
+// Подтверждение закрытия
+tg.enableClosingConfirmation();
+
+// Главная кнопка (скрыта по умолчанию)
+tg.MainButton.setParams({ text: "Продолжить", is_visible: false });
 
 // Настроить viewport для полного экрана
 const viewport = document.querySelector('meta[name=viewport]');
@@ -402,7 +402,12 @@ if (viewport) {
   viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
 }
 
-// Apply Telegram theme colors if available
+// Установить цвета темы
+if (tg.colorScheme) {
+  document.documentElement.style.setProperty('--tg-theme', tg.colorScheme);
+}
+
+// Apply Telegram theme colors
 if (tg.colorScheme === 'dark' || true) {
   document.documentElement.style.setProperty('--bg', '#0F0A1E');
 }
