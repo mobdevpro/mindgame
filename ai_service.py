@@ -153,6 +153,8 @@ async def classify_diary_mood(text: str) -> dict:
 # VOSK SPEECH-TO-TEXT (оффлайн транскрибация)
 # ═══════════════════════════════════════════════════════════════
 
+from vosk import Model, KaldiRecognizer
+
 # Путь к модели Vosk (в папке проекта)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VOSK_MODEL_PATH = os.path.join(BASE_DIR, "vosk-model-small-ru-0.22")
