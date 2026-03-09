@@ -472,13 +472,13 @@ TASK_POINTS = {
 }
 
 
-async def save_task(user_id: int, title: str, difficulty: str) -> int:
+async def save_task(user_id: int, title: str, difficulty: str, is_voice: bool = False) -> int:
     points = TASK_POINTS.get(difficulty, 5)
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("""
-            INSERT INTO tasks (user_id, title, estimated_difficulty_score, estimated_points, status)
-            VALUES (?, ?, ?, ?, 'new')
-        """, (user_id, title, difficulty, points))
+            INSERT INTO tasks (user_id, title, estimated_difficulty_score, estimated_points, status, is_voice)
+            VALUES (?, ?, ?, ?, 'new', ?)
+        """, (user_id, title, difficulty, points, 1 if is_voice else 0))
         task_id = cursor.lastrowid
         await db.commit()
         return task_id
