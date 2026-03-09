@@ -3,21 +3,39 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+# ═══════════════════════════════════════════════════════════════
+# ОПРЕДЕЛЕНИЕ ОКРУЖЕНИЯ (test / production)
+# ═══════════════════════════════════════════════════════════════
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
+
+if ENVIRONMENT == "test":
+    # ТЕСТОВАЯ ЗОНА
+    BOT_TOKEN = os.getenv("TEST_BOT_TOKEN", "")
+    CHANNEL_ID = os.getenv("TEST_CHANNEL_ID", "@vadbag")
+    ADMIN_USERNAME = os.getenv("TEST_ADMIN_USERNAME", "admin")
+    ADMIN_PASSWORD = os.getenv("TEST_ADMIN_PASSWORD", "admin123")
+    DB_PATH = "test.db"
+    IS_TEST_ENV = True
+else:
+    # БОЕВАЯ ЗОНА
+    BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+    CHANNEL_ID = os.getenv("CHANNEL_ID", "@vadbag")
+    ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "mindgame2024")
+    DB_PATH = "game.db"
+    IS_TEST_ENV = False
+
+# Общие настройки
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-CHANNEL_ID = os.getenv("CHANNEL_ID", "@vadbag")
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "mindgame2024")
 SESSION_SECRET = os.getenv("SESSION_SECRET", "s3cr3t-ch4ng3-1n-pr0d")
 ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()]
-
-DB_PATH = "game.db"
 
 # Populated at bot startup via getMe()
 BOT_USERNAME = ""
 
-# Points rules (defaults, can be overridden from database)
+# Points rules
 POINTS = {
     "subscription": 50,
     "first_trigger": 20,
@@ -33,12 +51,10 @@ POINTS = {
     "referral": 50,
 }
 
-# Cache for points loaded from database
 _POINTS_CACHE = None
 _POINTS_CACHE_LOADED = False
 
 async def load_points_from_db():
-    """Load points configuration from database and cache it."""
     global _POINTS_CACHE, _POINTS_CACHE_LOADED
     try:
         from database import get_points_config_dict
@@ -46,22 +62,18 @@ async def load_points_from_db():
         _POINTS_CACHE_LOADED = True
         return _POINTS_CACHE
     except Exception:
-        # If database is not available, use defaults
         _POINTS_CACHE = POINTS.copy()
         _POINTS_CACHE_LOADED = True
         return _POINTS_CACHE
 
 def get_points(rule_name: str, default: int = None) -> int:
-    """Get a points value by rule name, using cache if available."""
     global _POINTS_CACHE, _POINTS_CACHE_LOADED
     if _POINTS_CACHE is None and not _POINTS_CACHE_LOADED:
-        # Not loaded yet, use default POINTS
         return POINTS.get(rule_name, default or 0)
     if _POINTS_CACHE is None:
         _POINTS_CACHE = POINTS.copy()
     return _POINTS_CACHE.get(rule_name, default or POINTS.get(rule_name, 0))
 
-# Levels
 LEVELS = [
     (0, "Наблюдатель 👁"),
     (100, "Исследователь себя 🔍"),
@@ -85,29 +97,21 @@ def get_next_level_threshold(points: int) -> int | None:
             return threshold
     return None
 
-
-# ─── Menu Settings ────────────────────────────────────────────────────────────
-
-# Default values (all items shown)
 MENU_DEFAULTS = {
-    "show_diary":         True,
+    "show_diary": True,
     "show_triggers_list": True,
-    "show_tasks":         True,
-    "show_progress":      True,
-    "show_checkin":       True,
-    "show_shop":          True,
-    "show_stop":          True,
-    "show_settings":      True,
+    "show_tasks": True,
+    "show_progress": True,
+    "show_checkin": True,
+    "show_shop": True,
+    "show_stop": True,
+    "show_settings": True,
 }
 
 async def load_menu_from_db():
-    """No-op kept for backward compat — settings are now read live from DB."""
     pass
 
-
 def get_menu_setting(key: str) -> bool:
-    """Read a menu setting directly from DB each time (no cache — two-process safe).
-    Falls back to MENU_DEFAULTS if the table doesn't exist yet."""
     try:
         import sqlite3
         with sqlite3.connect(DB_PATH) as conn:

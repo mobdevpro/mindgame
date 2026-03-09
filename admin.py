@@ -100,6 +100,20 @@ def level_badge(xp: int) -> str:
 
 
 def page(title: str, content: str, active: str = "") -> str:
+    from config import IS_TEST_ENV
+    
+    # Визуальный индикатор тестовой зоны
+    test_banner = ""
+    if IS_TEST_ENV:
+        test_banner = '''
+        <div style="background:#EF4444;color:white;text-align:center;padding:8px;font-weight:700;font-size:14px;">
+            ⚠️ ТЕСТОВАЯ ЗОНА — данные не настоящие
+        </div>
+        '''
+    
+    # Изменить цвет сайдбара для тестовой зоны
+    sidebar_bg = "#111827" if not IS_TEST_ENV else "#7C1D1D"
+    
     nav_items = [
         ("📊 Дашборд", "/admin", "dashboard"),
         ("👥 Пользователи", "/users", "users"),
@@ -121,12 +135,12 @@ def page(title: str, content: str, active: str = "") -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{title} — Admin</title>
+  <title>{title} — Admin {"(TEST)" if IS_TEST_ENV else ""}</title>
   <style>
     *{{box-sizing:border-box;margin:0;padding:0}}
     body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#111827}}
     .layout{{display:flex;min-height:100vh}}
-    .sidebar{{width:220px;background:#111827;padding:20px 12px;flex-shrink:0}}
+    .sidebar{{width:220px;background:{sidebar_bg};padding:20px 12px;flex-shrink:0}}
     .sidebar h1{{color:white;font-size:16px;font-weight:700;margin-bottom:24px;padding:0 4px}}
     .main{{flex:1;padding:24px;overflow:auto}}
     h2{{font-size:20px;font-weight:700;margin-bottom:20px;color:#111827}}
@@ -156,9 +170,10 @@ def page(title: str, content: str, active: str = "") -> str:
   </style>
 </head>
 <body>
+{test_banner}
 <div class="layout">
   <div class="sidebar">
-    <h1>🎮 Admin Panel</h1>
+    <h1>🎮 Admin Panel {"🧪 TEST" if IS_TEST_ENV else ""}</h1>
     {nav_html}
   </div>
   <div class="main">
@@ -1216,5 +1231,22 @@ async def update_menu_setting(request: Request, key: str = Form(...), value: str
 # ─── Run ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    print("🎮 Admin Panel: http://localhost:8080")
-    uvicorn.run(app, host="0.0.0.0", port=8080, log_level="warning")
+    import os
+    env = os.getenv("ENVIRONMENT", "production")
+    port = 8081 if env == "test" else 8080
+    
+    env_label = "🧪 TEST" if env == "test" else "⚔️ PRODUCTION"
+    
+    print("")
+    print("╔═══════════════════════════════════════════════════════════╗")
+    print(f"║         🚀 Admin Panel — {env_label:<26} ║")
+    print("╚═══════════════════════════════════════════════════════════╝")
+    print("")
+    print(f"  🌐 URL:      http://localhost:{port}/admin")
+    print(f"  📊 Порт:     {port}")
+    print(f"  🗄  База:     {DB_PATH}")
+    print(f"  🔑 Логин:    {ADMIN_USERNAME}")
+    print(f"  🔑 Пароль:   {ADMIN_PASSWORD}")
+    print("")
+    
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="warning")
