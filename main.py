@@ -61,13 +61,16 @@ async def main():
 
     # Set Mini App menu button (appears in chat input bar — most reliable Mini App launcher)
     try:
+        # Use production URL for production bot, test URL for test bot
+        webapp_url = "https://vadbag.su/app" if not config.IS_TEST_ENV else "https://test-admin.vadbag.su/app"
+        
         await bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(
                 text="🎮 Приложение",
-                web_app=WebAppInfo(url="https://vadbag.su/app")
+                web_app=WebAppInfo(url=webapp_url)
             )
         )
-        logger.info("Mini App menu button configured successfully")
+        logger.info(f"Mini App menu button configured: {webapp_url}")
     except Exception as e:
         logger.warning(f"Menu button setup failed (non-critical): {e}")
 

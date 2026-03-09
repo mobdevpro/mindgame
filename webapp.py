@@ -384,7 +384,23 @@ SPA_HTML = """<!DOCTYPE html>
 <script>
 const tg = window.Telegram.WebApp;
 tg.ready();
-tg.expand();
+tg.expand();  // Раскрыть на полный экран
+tg.enableClosingConfirmation();  // Подтверждение закрытия
+tg.MainButton.setParams({ text: "Продолжить", is_visible: false });  // Главная кнопка
+
+// Сообщить Telegram что WebApp готов
+tg.ready();
+
+// Установить цвета темы
+if (tg.colorScheme) {
+  document.documentElement.style.setProperty('--tg-theme', tg.colorScheme);
+}
+
+// Настроить viewport для полного экрана
+const viewport = document.querySelector('meta[name=viewport]');
+if (viewport) {
+  viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+}
 
 // Apply Telegram theme colors if available
 if (tg.colorScheme === 'dark' || true) {
