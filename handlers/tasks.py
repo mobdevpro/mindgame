@@ -128,15 +128,9 @@ async def handle_voice_task(message: Message, state: FSMContext):
             )
             return
         
-        # Показываем результат
-        await wait_msg.edit_text(
-            f"✅ Распознал ({duration:.1f} сек):\n\n«{text}»\n\n"
-            f"Выбирай сложность:"
-        )
-        
-        # Сохраняем задачу с аудио инфо
-        await process_task_text(message, text, state, is_voice=True)
-        
+        # Показываем результат и сохраняем задачу
+        await process_task_text(message, text, state, is_voice=True, wait_msg=wait_msg)
+
     except Exception as e:
         await wait_msg.edit_text(
             f"❌ Ошибка при обработке:\n{str(e)}\n\n"
@@ -153,18 +147,28 @@ async def receive_task_text(message: Message, state: FSMContext):
     await process_task_text(message, text, state, is_voice=False)
 
 
-async def process_task_text(message: Message, text: str, state: FSMContext, is_voice: bool = False):
+async def process_task_text(message: Message, text: str, state: FSMContext, is_voice: bool = False, wait_msg: Message = None):
     """Общая функция для текстовых и голосовых задач."""
     await state.update_data(task_text=text, is_voice=is_voice)
     await state.set_state(TaskStates.waiting_difficulty)
     
     voice_badge = "🎤 " if is_voice else ""
-    await message.answer(
-        f"{voice_badge}📋 <b>«{text[:60]}»</b>\n\n"
-        f"Насколько эта задача сложная или дискомфортная для тебя?",
-        parse_mode="HTML",
-        reply_markup=kb.task_difficulty_keyboard()
-    )
+    
+    # Если есть wait_msg (от голосового), редактируем его
+    if wait_msg:
+        await wait_msg.edit_text(
+            f"{voice_badge}📋 <b>«{text[:60]}»</b>\n\n"
+            f"Насколько эта задача сложная или дискомфортная для тебя?",
+            parse_mode="HTML",
+            reply_markup=kb.task_difficulty_keyboard()
+        )
+    else:
+        await message.answer(
+            f"{voice_badge}📋 <b>«{text[:60]}»</b>\n\n"
+            f"Насколько эта задача сложная или дискомфортная для тебя?",
+            parse_mode="HTML",
+            reply_markup=kb.task_difficulty_keyboard()
+        )
 
 
 @router.callback_query(TaskStates.waiting_difficulty, F.data.startswith("task_diff:"))
