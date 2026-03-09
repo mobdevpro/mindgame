@@ -553,12 +553,12 @@ async function renderProfile(el) {
     <div class="card">
       <div class="row" style="align-items:center;gap:20px">
         <!-- Аватар с круговым прогрессом вокруг -->
-        <div style="position:relative;width:100px;height:100px;flex-shrink:0">
-          <svg width="100" height="100" style="transform:rotate(-90deg)">
-            <circle cx="50" cy="50" r="45" fill="none" stroke="var(--bg)" stroke-width="10"/>
-            <circle cx="50" cy="50" r="45" fill="none" stroke="url(#gradient)" stroke-width="10" 
-              stroke-dasharray="${2 * Math.PI * 45}" 
-              stroke-dashoffset="${2 * Math.PI * 45 * (1 - progress/100)}" 
+        <div style="position:relative;width:86px;height:86px;flex-shrink:0">
+          <svg width="86" height="86" style="transform:rotate(-90deg)">
+            <circle cx="43" cy="43" r="40" fill="none" stroke="var(--bg)" stroke-width="6"/>
+            <circle cx="43" cy="43" r="40" fill="none" stroke="url(#gradient)" stroke-width="6" 
+              stroke-dasharray="${2 * Math.PI * 40}" 
+              stroke-dashoffset="${2 * Math.PI * 40 * (1 - progress/100)}" 
               stroke-linecap="round"
               style="transition:stroke-dashoffset 0.5s"/>
             <defs>
@@ -569,8 +569,8 @@ async function renderProfile(el) {
             </defs>
           </svg>
           ${userAvatar
-            ? `<img src="${userAvatar}" alt="Avatar" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;object-fit:cover">`
-            : `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white">${name[0].toUpperCase()}</div>`
+            ? `<img src="${userAvatar}" alt="Avatar" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;object-fit:cover">`
+            : `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white">${name[0].toUpperCase()}</div>`
           }
         </div>
         
