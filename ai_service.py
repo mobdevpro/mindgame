@@ -1,5 +1,16 @@
+"""
+AI Service — Anthropic Claude + Vosk Speech-to-Text
+"""
+import os
+import json
+import wave
+import subprocess
 import anthropic
 from config import ANTHROPIC_API_KEY
+
+# ═══════════════════════════════════════════════════════════════
+# ANTHROPIC CLAUDE (анализ эмоций)
+# ═══════════════════════════════════════════════════════════════
 
 _client = None
 
@@ -59,7 +70,6 @@ async def analyze_trigger(text: str) -> dict:
 }}"""
             }]
         )
-        import json
         result = json.loads(message.content[0].text.strip())
         return result
     except Exception as e:
@@ -75,7 +85,7 @@ async def generate_reflection_prompt(trigger_text: str, emotion: str, step: int)
         1: "что именно задело человека в этой ситуации",
         2: "что он почувствовал в теле или в голове",
         3: "что было вне его контроля в этой ситуации",
-        4: "что было в его зоне влияния",
+        4: "что было в твоей зоне влияния",
         5: "какой следующий зрелый шаг он может сделать",
     }
     focus = steps.get(step, "рефлексию")
@@ -134,7 +144,120 @@ async def classify_diary_mood(text: str) -> dict:
 }}"""
             }]
         )
-        import json
         return json.loads(message.content[0].text.strip())
     except Exception:
         return {"mood": "neutral", "insight": ""}
+
+
+# ═══════════════════════════════════════════════════════════════
+# VOSK SPEECH-TO-TEXT (оффлайн транскрибация)
+# ═══════════════════════════════════════════════════════════════
+
+# Путь к модели Vosk (в папке проекта)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+VOSK_MODEL_PATH = os.path.join(BASE_DIR, "vosk-model-small-ru-0.22")
+
+# Кэш модели
+_vosk_model = None
+
+
+def get_vosk_model():
+    """Загрузить модель Vosk (кэшируется)."""
+    global _vosk_model
+    if _vosk_model is None:
+        if not os.path.exists(VOSK_MODEL_PATH):
+            raise FileNotFoundError(
+                f"Модель Vosk не найдена: {VOSK_MODEL_PATH}\n"
+                f"Скачай: wget https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip\n"
+                f"Распакуй в: {BASE_DIR}"
+            )
+        from vosk import Model
+        _vosk_model = Model(VOSK_MODEL_PATH)
+    return _vosk_model
+
+
+async def transcribe_voice_vosk(file_path: str) -> dict:
+    """
+    Транскрибация через Vosk (оффлайн).
+    file_path: путь к .ogg или .wav файлу
+    
+    Возвращает:
+    {
+        "text": "распознанный текст",
+        "duration": 15.5,  # длительность в секундах
+        "language": "ru",
+        "service": "vosk"
+    }
+    """
+    try:
+        # Конвертировать Ogg → WAV (если нужно)
+        wav_path = convert_ogg_to_wav(file_path)
+        
+        # Открыть WAV файл
+        wf = wave.open(wav_path, "rb")
+        
+        # Проверка формата
+        if wf.getnchannels() != 1 or wf.getsampwidth() != 2:
+            raise ValueError("Неверный формат WAV. Нужно: mono, 16-bit")
+        
+        # Создать распознаватель
+        model = get_vosk_model()
+        rec = KaldiRecognizer(model, wf.getframerate())
+        rec.SetWords(True)  # Возвращать тайминги слов
+        
+        # Распознавание
+        text_parts = []
+        while True:
+            data = wf.readframes(4000)
+            if len(data) == 0:
+                break
+            if rec.AcceptWaveform(data):
+                result = json.loads(rec.Result())
+                if result.get("text"):
+                    text_parts.append(result["text"])
+        
+        # Финальный результат
+        final_result = json.loads(rec.FinalResult())
+        if final_result.get("text"):
+            text_parts.append(final_result["text"])
+        
+        full_text = " ".join(text_parts).strip()
+        
+        # Длительность
+        duration = wf.getnframes() / wf.getframerate()
+        wf.close()
+        
+        # Удалить временный файл
+        if wav_path != file_path:
+            os.remove(wav_path)
+        
+        return {
+            "text": full_text,
+            "duration": duration,
+            "language": "ru",
+            "service": "vosk"
+        }
+        
+    except Exception as e:
+        return {"text": "", "error": str(e)}
+
+
+def convert_ogg_to_wav(ogg_path: str) -> str:
+    """
+    Конвертировать Ogg (из Telegram) в WAV для Vosk.
+    Vosk требует: WAV, 16kHz, mono, 16-bit PCM
+    """
+    wav_path = ogg_path.replace(".ogg", ".wav")
+    
+    # Использовать ffmpeg для конвертации
+    subprocess.run([
+        "ffmpeg",
+        "-i", ogg_path,
+        "-ar", "16000",      # 16 kHz
+        "-ac", "1",          # mono
+        "-acodec", "pcm_s16le",  # 16-bit PCM
+        "-y",                # перезаписать если есть
+        wav_path
+    ], check=True, capture_output=True)
+    
+    return wav_path

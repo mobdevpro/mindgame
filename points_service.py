@@ -16,9 +16,15 @@ async def award_subscription(telegram_id: int) -> int:
 async def award_trigger(telegram_id: int, trigger_id: int,
                         has_emotion: bool, has_intensity: bool,
                         has_insight: bool, has_zone: bool,
-                        is_first_today: bool, is_first_ever: bool) -> dict:
+                        is_first_today: bool, is_first_ever: bool,
+                        is_voice: bool = False) -> dict:
     total = POINTS["trigger_base"]
     breakdown = [f"📝 Запись триггера: +{POINTS['trigger_base']}"]
+    
+    # Бонус за голосовой триггер
+    if is_voice:
+        total += 5  # +5 очков за голосовой
+        breakdown.append(f"🎤 Голосовой триггер: +5")
 
     if is_first_ever:
         total += POINTS["first_trigger"]

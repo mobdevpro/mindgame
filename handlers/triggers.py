@@ -1,6 +1,7 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, Voice
 from aiogram.fsm.context import FSMContext
+import os
 
 import database as db
 import keyboards as kb
@@ -51,29 +52,109 @@ async def receive_trigger_text(message: Message, state: FSMContext):
         await message.answer("Напиши чуть подробнее – хотя бы несколько слов 🙏")
         return
 
-    # Show typing indicator while AI processes
-    await message.answer("⏳ Анализирую...")
+    # Process the trigger
+    await process_trigger_text(message, text, state)
 
+
+# ─── Voice trigger handler ────────────────────────────────────────────────────
+
+@router.message(TriggerStates.waiting_trigger_text, F.voice)
+async def handle_voice_trigger(message: Message, state: FSMContext):
+    """Обработка голосовых триггеров через Vosk."""
+    
+    voice = message.voice
+    
+    # Проверка длительности (макс 2 минуты)
+    if voice.duration > 120:
+        await message.answer(
+            "❌ Голосовое слишком длинное (макс 2 минуты).\n"
+            "Запиши короче или напиши текстом."
+        )
+        return
+    
+    # Скачиваем файл
+    wait_msg = await message.answer("🎤 Записываю голос...")
+    
+    try:
+        file = await message.bot.get_file(voice.file_id)
+        file_path = f"temp/voice_{message.from_user.id}_{voice.file_unique_id}.ogg"
+        
+        os.makedirs("temp", exist_ok=True)
+        await message.bot.download_file(file.file_path, file_path)
+        
+        # Транскрибация через Vosk
+        result = await ai.transcribe_voice_vosk(file_path)
+        
+        # Удаляем временный файл
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        
+        if result.get("error"):
+            await wait_msg.edit_text(
+                f"❌ Не удалось распознать:\n{result['error']}\n\n"
+                f"Попробуй записать ещё раз или напиши текстом."
+            )
+            return
+        
+        text = result["text"]
+        duration = result.get("duration", 0)
+        
+        if not text or len(text) < 3:
+            await wait_msg.edit_text(
+                "❌ Не удалось разобрать слова. "
+                "Говори чётче или напиши текстом."
+            )
+            return
+        
+        # Показываем результат
+        await wait_msg.edit_text(
+            f"✅ Распознал ({duration:.1f} сек):\n\n«{text}»\n\n"
+            f"Анализирую..."
+        )
+        
+        # Process the trigger with audio info
+        await process_trigger_text(
+            message, text, state,
+            audio_file_id=voice.file_id,
+            audio_duration=duration
+        )
+        
+    except Exception as e:
+        await wait_msg.edit_text(
+            f"❌ Ошибка при обработке:\n{str(e)}\n\n"
+            f"Попробуй ещё раз или напиши текстом."
+        )
+
+
+async def process_trigger_text(message: Message, text: str, state: FSMContext,
+                               audio_file_id: str = None, audio_duration: int = None):
+    """Общая функция для текстовых и голосовых триггеров."""
+    
     # AI analysis
     analysis = await ai.analyze_trigger(text)
     emotion_code = analysis.get("emotion", "other")
     category_code = analysis.get("category", "other")
     ai_response = analysis.get("brief_response", "")
-
+    
     # Save draft trigger state
     await state.update_data(
         raw_text=text,
         emotion_code=emotion_code,
         category_code=category_code,
-        ai_response=ai_response
+        ai_response=ai_response,
+        audio_file_id=audio_file_id,
+        audio_duration=audio_duration
     )
-
+    
     # Build response
     emotion_label = ai.EMOTION_LABELS.get(emotion_code, "💭 Другое")
     category_label = ai.CATEGORY_LABELS.get(category_code, "💭 Другое")
-
+    
+    # Voice badge
+    voice_badge = "🎤 " if audio_file_id else ""
+    
     resp = (
-        f"✅ <b>Триггер зафиксирован.</b>\n"
+        f"{voice_badge}✅ <b>Триггер зафиксирован.</b>\n"
         f"Ты уже не внутри автопилота – ты наблюдаешь.\n\n"
     )
     if ai_response:
@@ -83,7 +164,7 @@ async def receive_trigger_text(message: Message, state: FSMContext):
         f"💭 Эмоция: {emotion_label}\n\n"
         f"Выбери эмоцию точнее или подтверди:"
     )
-
+    
     await message.answer(resp, parse_mode="HTML", reply_markup=kb.emotion_keyboard())
     await state.set_state(TriggerStates.waiting_emotion)
 
@@ -224,6 +305,8 @@ async def save_trigger_and_finish(message: Message, state: FSMContext, user_id: 
         emotion_code=emotion_code,
         intensity=intensity,
         category_code=category_code,
+        audio_file_id=data.get("audio_file_id"),
+        audio_duration=data.get("audio_duration"),
     )
     if zone_text:
         await db.update_trigger(trigger_id, zone_of_control_text=zone_text)
@@ -231,6 +314,7 @@ async def save_trigger_and_finish(message: Message, state: FSMContext, user_id: 
         await db.update_trigger(trigger_id, insight_text=insight_text)
 
     # Award points
+    is_voice = bool(data.get("audio_file_id"))
     result = await ps.award_trigger(
         telegram_id=user_id,
         trigger_id=trigger_id,
@@ -240,6 +324,7 @@ async def save_trigger_and_finish(message: Message, state: FSMContext, user_id: 
         has_zone=bool(zone_text),
         is_first_today=(triggers_today == 0),
         is_first_ever=(triggers_total == 0),
+        is_voice=is_voice,
     )
 
     # Check achievements

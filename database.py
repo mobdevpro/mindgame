@@ -268,13 +268,17 @@ async def award_points(telegram_id: int, points: int, event_type: str,
 
 async def save_trigger(user_id: int, raw_text: str, emotion_code: str = None,
                        intensity: int = None, category_code: str = None,
-                       ai_tags: str = None, points: int = 0) -> int:
+                       ai_tags: str = None, points: int = 0,
+                       audio_file_id: str = None, audio_duration: int = None) -> int:
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("""
             INSERT INTO triggers
-            (user_id, raw_text, emotion_code, intensity, category_code, ai_tags, points_awarded)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (user_id, raw_text, emotion_code, intensity, category_code, ai_tags, points))
+            (user_id, raw_text, emotion_code, intensity, category_code, ai_tags, 
+             points_awarded, audio_file_id, audio_duration, transcription_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, raw_text, emotion_code, intensity, category_code, ai_tags, 
+              points, audio_file_id, audio_duration,
+              'voice' if audio_file_id else 'text'))
         trigger_id = cursor.lastrowid
         await db.commit()
         return trigger_id

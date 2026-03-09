@@ -132,10 +132,34 @@ async def migrate_002_add_menu_settings():
         return True
 
 
+async def migrate_003_add_voice_fields():
+    """Миграция: добавить поля для голосовых триггеров."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Проверить существование колонок
+        async with db.execute("PRAGMA table_info(triggers)") as cur:
+            columns = [row[1] for row in await cur.fetchall()]
+        
+        # Добавить audio_file_id
+        if 'audio_file_id' not in columns:
+            await db.execute("ALTER TABLE triggers ADD COLUMN audio_file_id TEXT")
+        
+        # Добавить audio_duration
+        if 'audio_duration' not in columns:
+            await db.execute("ALTER TABLE triggers ADD COLUMN audio_duration INTEGER")
+        
+        # Добавить transcription_status
+        if 'transcription_status' not in columns:
+            await db.execute("ALTER TABLE triggers ADD COLUMN transcription_status TEXT DEFAULT 'text'")
+        
+        await db.commit()
+        return True
+
+
 # Список всех миграций в порядке применения
 MIGRATIONS = [
     ("001_add_points_config", migrate_001_add_points_config),
     ("002_add_menu_settings", migrate_002_add_menu_settings),
+    ("003_add_voice_fields", migrate_003_add_voice_fields),
 ]
 
 
