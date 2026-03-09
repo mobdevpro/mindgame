@@ -539,13 +539,6 @@ async function renderProfile(el) {
   // Получаем аватар из Telegram
   const userAvatar = tg.initDataUnsafe?.user?.photo_url || null;
 
-  // Получаем паттерны для графика эмоций
-  let patterns = null;
-  try {
-    const patternsData = await api('/api/patterns');
-    patterns = patternsData.patterns;
-  } catch(e) {}
-
   el.innerHTML = `
     <div class="page-title">Мой профиль</div>
     
@@ -636,29 +629,6 @@ async function renderProfile(el) {
         </div>
       </div>
     </div>
-
-    <!-- График эмоций -->
-    ${patterns?.top_emotions?.length > 0 ? `
-    <div class="card">
-      <div class="card-title">💭 Топ эмоций</div>
-      ${patterns.top_emotions.slice(0, 5).map((e, i) => {
-        const max = patterns.top_emotions[0].count;
-        const width = Math.round((e.count / max) * 100);
-        const colors = ['#A855F7', '#10B981', '#F59E0B', '#EF4444', '#3B82F6'];
-        return `
-        <div style="margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-            <span>${EMOTIONS[e.emotion] || e.emotion}</span>
-            <span style="color:var(--muted)">${e.count}</span>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width:${width}%;background:${colors[i % colors.length]}"></div>
-          </div>
-        </div>
-        `;
-      }).join('')}
-    </div>
-    ` : ''}
 
     <!-- Достижения -->
     ${data.achievements?.length > 0 ? `
