@@ -1232,20 +1232,41 @@ async def update_menu_setting(request: Request, key: str = Form(...), value: str
 # ─── Message Templates ────────────────────────────────────────────────────────
 
 @app.get("/messages", response_class=HTMLResponse)
-async def messages_list(request: Request):
-    templates = await db_fetchall("SELECT * FROM message_templates ORDER BY sort_order, template_name")
+async def messages_list(request: Request, category: str = ""):
+    if category:
+        templates = await db_fetchall("SELECT * FROM message_templates WHERE category = ? ORDER BY sort_order, template_name", (category,))
+    else:
+        templates = await db_fetchall("SELECT * FROM message_templates ORDER BY category, sort_order, template_name")
+    
+    categories = ["all", "general", "onboarding", "trigger", "diary", "task", "stop"]
+    category_labels = {
+        "all": "📋 Все",
+        "general": "🏠 Общие",
+        "onboarding": "🎮 Онбординг",
+        "trigger": "📝 Триггеры",
+        "diary": "📔 Дневник",
+        "task": "✅ Задачи",
+        "stop": "🛑 Стоп-режим"
+    }
+    
+    cat_filter = "".join(f"""
+        <a href="/messages?category={cat}" 
+           style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;
+                  background:{'#3B82F6' if category == cat else '#F3F4F6'};
+                  color:{'white' if category == cat else '#374151'}">
+          {category_labels.get(cat, cat)}
+        </a>
+    """ for cat in categories)
     
     rows = "".join(f"""
     <tr>
       <td><b>{t['template_name']}</b><br><span style="color:#6B7280;font-size:12px">{t['template_key']}</span></td>
+      <td><span style="background:#EEF2FF;color:#4338CA;padding:2px 8px;border-radius:6px;font-size:11px">{t['category']}</span></td>
       <td style="color:#6B7280;font-size:12px">{t['message_type']}</td>
       <td style="font-size:13px;max-width:400px">{t['message_text'][:80]}{'...' if len(t['message_text']) > 80 else ''}</td>
       <td>{'✅' if t['is_active'] else '❌'}</td>
       <td>
         <a href="/messages/edit/{t['template_key']}" class="btn btn-blue" style="padding:4px 10px;font-size:12px">✏️</a>
-        <form method="post" action="/messages/delete/{t['template_key']}" style="display:inline" onsubmit="return confirm('Удалить этот шаблон?')">
-          <button type="submit" class="btn btn-red" style="padding:4px 10px;font-size:12px;border:none">🗑</button>
-        </form>
       </td>
     </tr>""" for t in templates)
     
@@ -1255,6 +1276,9 @@ async def messages_list(request: Request):
         <h3 style="font-size:15px;font-weight:700">Шаблоны сообщений</h3>
         <a href="/messages/add" class="btn btn-green" style="padding:8px 16px">➕ Добавить</a>
       </div>
+      <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap">
+        {cat_filter}
+      </div>
       <p style="color:#6B7280;font-size:13px;margin-bottom:16px">
         Здесь можно редактировать сообщения, которые бот отправляет автоматически.
       </p>
@@ -1262,6 +1286,7 @@ async def messages_list(request: Request):
         <thead>
           <tr>
             <th>Название</th>
+            <th>Категория</th>
             <th>Тип</th>
             <th>Текст</th>
             <th>Активно</th>
