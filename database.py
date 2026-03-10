@@ -845,3 +845,46 @@ async def delete_message_template(template_key: str) -> bool:
         )
         await db.commit()
         return cursor.rowcount > 0
+
+
+# ─── Referrals ────────────────────────────────────────────────────────────────
+
+async def get_referrals_stats() -> list[dict]:
+    """Get referrals statistics for all users."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT 
+                u.id,
+                u.telegram_id,
+                u.first_name,
+                u.username,
+                u.referral_code,
+                COUNT(r.id) as referrals_count,
+                u.points_balance,
+                u.created_at
+            FROM users u
+            LEFT JOIN users r ON r.referred_by_user_id = u.id
+            WHERE u.referral_code IS NOT NULL
+            GROUP BY u.id
+            ORDER BY referrals_count DESC, u.created_at DESC
+        """) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+
+async def get_user_referrals(user_id: int) -> list[dict]:
+    """Get all referrals for a specific user."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT 
+                r.id,
+                r.telegram_id,
+                r.first_name,
+                r.username,
+                r.created_at as registered_at
+            FROM users r
+            WHERE r.referred_by_user_id = ?
+            ORDER BY r.created_at DESC
+        """, (user_id,)) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]

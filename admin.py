@@ -122,6 +122,7 @@ def page(title: str, content: str, active: str = "") -> str:
         ("🏆 Достижения", "/achievements", "achievements"),
         ("📢 Рассылки", "/broadcasts", "broadcasts"),
         ("💬 Сообщения", "/messages", "messages"),
+        ("👥 Рефералы", "/referrals", "referrals"),
         ("⭐ Очки", "/points", "points"),
         ("🎛 Меню бота", "/menu", "menu"),
     ]
@@ -1407,6 +1408,110 @@ async def message_edit_post(request: Request, template_key: str, template_name: 
 async def message_delete(request: Request, template_key: str):
     await db_execute("DELETE FROM message_templates WHERE template_key = ?", (template_key,))
     return RedirectResponse("/messages", status_code=303)
+
+
+# ─── Referrals ────────────────────────────────────────────────────────────────
+
+@app.get("/referrals", response_class=HTMLResponse)
+async def referrals_list(request: Request, user_id: str = ""):
+    if user_id:
+        # Show referrals for specific user
+        user = await db_fetchone("SELECT * FROM users WHERE id = ?", (int(user_id),))
+        referrals = await db.get_user_referrals(int(user_id))
+        
+        ref_rows = "".join(f"""
+        <tr>
+          <td>{r['first_name'] or '—'} {'@' + r['username'] if r.get('username') else ''}</td>
+          <td style="color:#6B7280;font-size:12px">{r['telegram_id']}</td>
+          <td style="color:#6B7280;font-size:12px">{r['registered_at'][:16]}</td>
+        </tr>""" for r in referrals)
+        
+        content = f"""
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+          <a href="/referrals" style="color:#6B7280;font-size:14px">← Назад к списку</a>
+        </div>
+        
+        <div class="card">
+          <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">
+            Рефералы пользователя: {user.get('first_name', '—')}
+          </h3>
+          <p style="color:#6B7280;font-size:13px;margin-bottom:16px">
+            Всего приведено: <b>{len(referrals)}</b>
+          </p>
+          {f'''
+          <table>
+            <thead>
+              <tr>
+                <th>Имя</th>
+                <th>Telegram ID</th>
+                <th>Дата регистрации</th>
+              </tr>
+            </thead>
+            <tbody>{ref_rows}</tbody>
+          </table>
+          ''' if referrals else '<p style="color:#6B7280">Пока нет рефералов</p>'}
+        </div>"""
+    else:
+        # Show all users with referrals
+        stats = await db.get_referrals_stats()
+        
+        rows = "".join(f"""
+        <tr>
+          <td><b>{s['first_name'] or '—'}</b> {'@' + s['username'] if s.get('username') else ''}</td>
+          <td style="color:#6B7280;font-size:12px">{s['telegram_id']}</td>
+          <td style="font-family:monospace;background:#F3F4F6;padding:4px 8px;border-radius:4px">{s['referral_code']}</td>
+          <td><b style="color:{'#10B981' if s['referrals_count'] > 0 else '#6B7280'}">{s['referrals_count']}</b></td>
+          <td>{s['points_balance']}</td>
+          <td style="color:#6B7280;font-size:12px">{s['created_at'][:10]}</td>
+          <td>
+            <a href="/referrals?user_id={s['id']}" class="btn btn-blue" style="padding:4px 10px;font-size:12px">👥 Смотреть</a>
+          </td>
+        </tr>""" for s in stats)
+        
+        total_referrals = sum(s['referrals_count'] for s in stats)
+        active_referrers = sum(1 for s in stats if s['referrals_count'] > 0)
+        
+        content = f"""
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:15px;font-weight:700">Рефералы</h3>
+          </div>
+          
+          <div class="stats" style="margin-bottom:24px">
+            <div class="stat">
+              <div class="stat-v">{len(stats)}</div>
+              <div class="stat-l">Участников</div>
+            </div>
+            <div class="stat">
+              <div class="stat-v">{total_referrals}</div>
+              <div class="stat-l">Всего рефералов</div>
+            </div>
+            <div class="stat">
+              <div class="stat-v">{active_referrers}</div>
+              <div class="stat-l">Привели друзей</div>
+            </div>
+          </div>
+          
+          <p style="color:#6B7280;font-size:13px;margin-bottom:16px">
+            Пользователи у которых есть реферальный код
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Имя</th>
+                <th>Telegram ID</th>
+                <th>Реферальный код</th>
+                <th>Приведено</th>
+                <th>Баланс</th>
+                <th>Дата</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>{rows}</tbody>
+          </table>
+        </div>"""
+    
+    return page("👥 Рефералы", content, "referrals")
 
 
 # ─── Run ──────────────────────────────────────────────────────────────────────
