@@ -17,6 +17,7 @@ import uvicorn
 
 from config import DB_PATH, BOT_TOKEN, get_level, LEVELS, ADMIN_USERNAME, ADMIN_PASSWORD, SESSION_SECRET
 from webapp import router as webapp_router
+import database as db
 
 
 # ─── Broadcasts DB init ───────────────────────────────────────────────────────
