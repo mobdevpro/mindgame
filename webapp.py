@@ -598,33 +598,27 @@ async function renderProfile(el) {
     <div class="card">
       <div class="row" style="align-items:center;gap:20px">
         <!-- Аватар с круговым прогрессом вокруг -->
-        <div style="position:relative;width:86px;height:86px;flex-shrink:0">
-          <svg width="86" height="86" style="transform:rotate(-90deg)">
-            <circle cx="43" cy="43" r="40" fill="none" stroke="var(--bg)" stroke-width="6"/>
-            <circle cx="43" cy="43" r="40" fill="none" stroke="url(#gradient)" stroke-width="6" 
-              stroke-dasharray="${2 * Math.PI * 40}" 
-              stroke-dashoffset="${2 * Math.PI * 40 * (1 - progress/100)}" 
+        <div style="position:relative;width:90px;height:90px;flex-shrink:0">
+          <svg width="90" height="90" style="transform:rotate(-90deg)">
+            <circle cx="45" cy="45" r="41" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
+            <circle cx="45" cy="45" r="41" fill="none" stroke="#D4AF37" stroke-width="8"
+              stroke-dasharray="${2 * Math.PI * 41}"
+              stroke-dashoffset="${2 * Math.PI * 41 * (1 - progress/100)}"
               stroke-linecap="round"
-              style="transition:stroke-dashoffset 0.5s"/>
-            <defs>
-              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" style="stop-color:var(--accent)"/>
-                <stop offset="100%" style="stop-color:var(--accent2)"/>
-              </linearGradient>
-            </defs>
+              style="transition:stroke-dashoffset 0.5s;filter:drop-shadow(0 0 6px rgba(212,175,55,0.6))"/>
           </svg>
           ${userAvatar
-            ? `<img src="${userAvatar}" alt="Avatar" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;object-fit:cover">`
-            : `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white">${name[0].toUpperCase()}</div>`
+            ? `<img src="${userAvatar}" alt="Avatar" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,175,55,0.3)">`
+            : `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,#D4AF37,#F4D03F);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#000">${name[0].toUpperCase()}</div>`
           }
         </div>
-        
+
         <!-- Информация о пользователе -->
         <div class="col" style="flex:1">
           <div style="font-size:20px;font-weight:700;margin-bottom:4px">${name}</div>
-          ${data.username ? `<div class="text-muted" style="font-size:13px;margin-bottom:8px">@${data.username}</div>` : ''}
+          ${data.username ? `<div class="text-secondary" style="font-size:13px;margin-bottom:8px">@${data.username}</div>` : ''}
           <div style="margin-bottom:8px"><span class="level-badge">${lvl_emoji} ${data.level_name}</span></div>
-          <div style="font-size:12px;color:var(--muted)">
+          <div style="font-size:12px;color:var(--text-secondary)">
             ${data.next_threshold ? `До ур. ${data.level_num + 1}: ${data.next_threshold - data.points} очков` : 'Максимальный уровень!'}
           </div>
         </div>
