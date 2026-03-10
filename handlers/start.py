@@ -186,9 +186,21 @@ async def verify_subscription(bot: Bot, user_id: int) -> bool:
     try:
         member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
         return member.status not in ("left", "kicked", "banned")
-    except Exception:
-        # If we can't check (e.g., bot not in channel), allow for local testing
+    except Exception as e:
+        # Логгируем ошибку но не блокируем пользователя
+        import logging
+        logging.warning(f"Error checking subscription for user {user_id}: {e}")
+        # Если не можем проверить (бот не в канале), разрешаем доступ
         return True
+
+
+async def check_subscription_required(bot: Bot, user_id: int) -> bool:
+    """Проверяет нужно ли требовать подписку от пользователя."""
+    try:
+        member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
+        return member.status in ("left", "kicked", "banned")
+    except Exception:
+        return False
 
 
 @router.callback_query(F.data == "go_home")

@@ -1,4 +1,4 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, Voice
 from aiogram.fsm.context import FSMContext
 import os
@@ -8,17 +8,40 @@ import keyboards as kb
 import points_service as ps
 import ai_service as ai
 from states import TriggerStates
+from config import CHANNEL_ID
 
 router = Router()
+
+
+async def check_subscription(bot: Bot, user_id: int) -> bool:
+    """Проверка подписки. Возвращает True если подписан."""
+    try:
+        member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
+        if member.status in ("left", "kicked", "banned"):
+            return False
+        return True
+    except Exception:
+        return True  # Если не можем проверить, разрешаем доступ
 
 
 # ─── Start recording a trigger ───────────────────────────────────────────────
 
 @router.message(F.text == "📝 Записать триггер")
-async def start_trigger(message: Message, state: FSMContext):
+async def start_trigger(message: Message, state: FSMContext, bot: Bot):
     user = await db.get_user(message.from_user.id)
     if not user:
         await message.answer("Сначала запусти бота командой /start")
+        return
+    
+    # Проверка подписки
+    if not await check_subscription(bot, message.from_user.id):
+        await message.answer(
+            "⚠️ <b>Ты отписался от канала!</b>\n\n"
+            f"Чтобы продолжить пользоваться ботом, подпишись на канал {CHANNEL_ID}\n\n"
+            f"После подписки все функции станут доступны.",
+            parse_mode="HTML",
+            reply_markup=kb.subscription_keyboard(CHANNEL_ID)
+        )
         return
 
     await state.set_state(TriggerStates.waiting_trigger_text)
