@@ -121,6 +121,7 @@ def page(title: str, content: str, active: str = "") -> str:
         ("📔 Дневник", "/diary", "diary"),
         ("🏆 Достижения", "/achievements", "achievements"),
         ("📢 Рассылки", "/broadcasts", "broadcasts"),
+        ("💬 Сообщения", "/messages", "messages"),
         ("⭐ Очки", "/points", "points"),
         ("🎛 Меню бота", "/menu", "menu"),
     ]
@@ -1226,6 +1227,161 @@ async def update_menu_setting(request: Request, key: str = Form(...), value: str
     from config import load_menu_from_db
     await load_menu_from_db()
     return RedirectResponse("/menu?updated=1", status_code=303)
+
+
+# ─── Message Templates ────────────────────────────────────────────────────────
+
+@app.get("/messages", response_class=HTMLResponse)
+async def messages_list(request: Request):
+    templates = await db_fetchall("SELECT * FROM message_templates ORDER BY sort_order, template_name")
+    
+    rows = "".join(f"""
+    <tr>
+      <td><b>{t['template_name']}</b><br><span style="color:#6B7280;font-size:12px">{t['template_key']}</span></td>
+      <td style="color:#6B7280;font-size:12px">{t['message_type']}</td>
+      <td style="font-size:13px;max-width:400px">{t['message_text'][:80]}{'...' if len(t['message_text']) > 80 else ''}</td>
+      <td>{'✅' if t['is_active'] else '❌'}</td>
+      <td>
+        <a href="/messages/edit/{t['template_key']}" class="btn btn-blue" style="padding:4px 10px;font-size:12px">✏️</a>
+        <form method="post" action="/messages/delete/{t['template_key']}" style="display:inline" onsubmit="return confirm('Удалить этот шаблон?')">
+          <button type="submit" class="btn btn-red" style="padding:4px 10px;font-size:12px;border:none">🗑</button>
+        </form>
+      </td>
+    </tr>""" for t in templates)
+    
+    content = f"""
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="font-size:15px;font-weight:700">Шаблоны сообщений</h3>
+        <a href="/messages/add" class="btn btn-green" style="padding:8px 16px">➕ Добавить</a>
+      </div>
+      <p style="color:#6B7280;font-size:13px;margin-bottom:16px">
+        Здесь можно редактировать сообщения, которые бот отправляет автоматически.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Тип</th>
+            <th>Текст</th>
+            <th>Активно</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>{rows}</tbody>
+      </table>
+    </div>"""
+    
+    return page("💬 Сообщения", content, "messages")
+
+
+@app.get("/messages/add", response_class=HTMLResponse)
+async def message_add(request: Request):
+    content = f"""
+    <div class="card">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Добавить шаблон</h3>
+      <form method="post" action="/messages/add">
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px">Ключ (латиница)</label>
+          <input type="text" name="template_key" placeholder="welcome_message" style="width:100%;padding:10px" required>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px">Название</label>
+          <input type="text" name="template_name" placeholder="Приветственное сообщение" style="width:100%;padding:10px" required>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px">Тип</label>
+          <select name="message_type" style="width:100%;padding:10px">
+            <option value="text">Текст</option>
+            <option value="notification">Уведомление</option>
+            <option value="reminder">Напоминание</option>
+          </select>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px">Сообщение</label>
+          <textarea name="message_text" rows="6" style="width:100%;padding:10px;font-family:monospace" placeholder="Текст сообщения..."></textarea>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button type="submit" class="btn btn-green">Сохранить</button>
+          <a href="/messages" class="btn btn-gray" style="background:#F3F4F6;color:#374151">Отмена</a>
+        </div>
+      </form>
+    </div>"""
+    return page("Добавить сообщение", content, "messages")
+
+
+@app.post("/messages/add")
+async def message_add_post(request: Request, template_key: str = Form(...), template_name: str = Form(...),
+                           message_type: str = Form(...), message_text: str = Form(...)):
+    await db_execute("""
+        INSERT INTO message_templates (template_key, template_name, message_text, message_type)
+        VALUES (?, ?, ?, ?)
+    """, (template_key, template_name, message_text, message_type))
+    return RedirectResponse("/messages", status_code=303)
+
+
+@app.get("/messages/edit/{template_key}", response_class=HTMLResponse)
+async def message_edit(request: Request, template_key: str):
+    template = await db_fetchone("SELECT * FROM message_templates WHERE template_key = ?", (template_key,))
+    if not template:
+        raise HTTPException(404, "Шаблон не найден")
+    
+    content = f"""
+    <div class="card">
+      <a href="/messages" style="color:#6B7280;font-size:14px;margin-bottom:16px;display:block">← Назад к списку</a>
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Редактировать: {template['template_name']}</h3>
+      <form method="post" action="/messages/edit/{template_key}">
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px">Ключ</label>
+          <input type="text" value="{template['template_key']}" disabled style="width:100%;padding:10px;background:#F3F4F6;color:#6B7280">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px">Название</label>
+          <input type="text" name="template_name" value="{template['template_name']}" style="width:100%;padding:10px" required>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px">Тип</label>
+          <select name="message_type" style="width:100%;padding:10px">
+            <option value="text" {'selected' if template['message_type'] == 'text' else ''}>Текст</option>
+            <option value="notification" {'selected' if template['message_type'] == 'notification' else ''}>Уведомление</option>
+            <option value="reminder" {'selected' if template['message_type'] == 'reminder' else ''}>Напоминание</option>
+          </select>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px">Сообщение</label>
+          <textarea name="message_text" rows="8" style="width:100%;padding:10px;font-family:monospace">{template['message_text']}</textarea>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" name="is_active" value="1" {'checked' if template['is_active'] else ''} style="width:18px;height:18px">
+            <span style="font-size:13px">Активно</span>
+          </label>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button type="submit" class="btn btn-blue">Сохранить</button>
+          <a href="/messages" class="btn btn-gray" style="background:#F3F4F6;color:#374151">Отмена</a>
+        </div>
+      </form>
+    </div>"""
+    return page("Редактировать сообщение", content, "messages")
+
+
+@app.post("/messages/edit/{template_key}")
+async def message_edit_post(request: Request, template_key: str, template_name: str = Form(...),
+                            message_type: str = Form(...), message_text: str = Form(...),
+                            is_active: str = Form(None)):
+    await db_execute("""
+        UPDATE message_templates 
+        SET template_name = ?, message_text = ?, message_type = ?, is_active = ?, updated_at = datetime('now')
+        WHERE template_key = ?
+    """, (template_name, message_text, message_type, 1 if is_active else 0, template_key))
+    return RedirectResponse("/messages", status_code=303)
+
+
+@app.post("/messages/delete/{template_key}")
+async def message_delete(request: Request, template_key: str):
+    await db_execute("DELETE FROM message_templates WHERE template_key = ?", (template_key,))
+    return RedirectResponse("/messages", status_code=303)
 
 
 # ─── Run ──────────────────────────────────────────────────────────────────────

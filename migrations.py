@@ -163,11 +163,60 @@ async def migrate_003_add_voice_fields():
         return True
 
 
+async def migrate_004_add_message_templates():
+    """Миграция: добавить таблицу шаблонов сообщений."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("PRAGMA table_info(message_templates)") as cur:
+            if await cur.fetchone():
+                return True  # Таблица уже существует
+
+        await db.execute("""
+            CREATE TABLE message_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                template_key TEXT UNIQUE NOT NULL,
+                template_name TEXT NOT NULL,
+                message_text TEXT NOT NULL,
+                message_type TEXT DEFAULT 'text',  -- text, notification, reminder
+                is_active INTEGER DEFAULT 1,
+                sort_order INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
+        # Seed стандартных сообщений
+        await db.executemany("""
+            INSERT OR IGNORE INTO message_templates 
+            (template_key, template_name, message_text, message_type, sort_order)
+            VALUES (?, ?, ?, ?, ?)
+        """, [
+            ("welcome", "Приветственное сообщение", 
+             "Добро пожаловать в MindGame! 🎮\n\nЭто бот для развития осознанности.\n\nЗапиши свой первый триггер и получи 50 баллов!", 
+             "text", 1),
+            ("diary_reminder", "Напоминание о дневнике", 
+             "📔 Как прошёл твой день? Есть минута написать в дневник?", 
+             "reminder", 2),
+            ("trigger_reminder", "Напоминание о триггере", 
+             "📝 Было ли что-то, что тебя задело сегодня? Зафиксируй триггер — +5 баллов.", 
+             "reminder", 3),
+            ("checkin_message", "Быстрый чек-ин", 
+             "✅ Эй! Что ты сейчас чувствуешь? Где твоё внимание?\n\nТы сейчас в реакции или в выборе?", 
+             "text", 4),
+            ("subscription_success", "Успешная подписка", 
+             "✅ Подписка подтверждена!\n\n🎁 Начислено 50 стартовых баллов\n\nИгра началась!", 
+             "text", 5),
+        ])
+
+        await db.commit()
+        return True
+
+
 # Список всех миграций в порядке применения
 MIGRATIONS = [
     ("001_add_points_config", migrate_001_add_points_config),
     ("002_add_menu_settings", migrate_002_add_menu_settings),
     ("003_add_voice_fields", migrate_003_add_voice_fields),
+    ("004_add_message_templates", migrate_004_add_message_templates),
 ]
 
 

@@ -785,3 +785,63 @@ async def update_menu_setting(key: str, value: bool):
             (1 if value else 0, key)
         )
         await db.commit()
+
+
+# ─── Message Templates ────────────────────────────────────────────────────────
+
+async def get_all_message_templates() -> list[dict]:
+    """Get all message templates."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM message_templates ORDER BY sort_order, template_name"
+        ) as cur:
+            return [dict(r) for r in await cur.fetchall()]
+
+
+async def get_message_template(template_key: str) -> dict | None:
+    """Get a single message template by key."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM message_templates WHERE template_key = ?", (template_key,)
+        ) as cur:
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+
+async def update_message_template(template_key: str, message_text: str, is_active: bool = True) -> bool:
+    """Update a message template."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "UPDATE message_templates SET message_text = ?, is_active = ?, updated_at = datetime('now') WHERE template_key = ?",
+            (message_text, 1 if is_active else 0, template_key)
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+
+
+async def add_message_template(template_key: str, template_name: str, message_text: str, 
+                               message_type: str = 'text', sort_order: int = 0) -> bool:
+    """Add a new message template."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        try:
+            cursor = await db.execute("""
+                INSERT INTO message_templates 
+                (template_key, template_name, message_text, message_type, sort_order)
+                VALUES (?, ?, ?, ?, ?)
+            """, (template_key, template_name, message_text, message_type, sort_order))
+            await db.commit()
+            return cursor.lastrowid > 0
+        except Exception:
+            return False
+
+
+async def delete_message_template(template_key: str) -> bool:
+    """Delete a message template."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "DELETE FROM message_templates WHERE template_key = ?", (template_key,)
+        )
+        await db.commit()
+        return cursor.rowcount > 0
