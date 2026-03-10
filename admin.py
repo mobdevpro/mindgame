@@ -1232,8 +1232,8 @@ async def update_menu_setting(request: Request, key: str = Form(...), value: str
 # ─── Message Templates ────────────────────────────────────────────────────────
 
 @app.get("/messages", response_class=HTMLResponse)
-async def messages_list(request: Request, category: str = ""):
-    if category:
+async def messages_list(request: Request, category: str = "all"):
+    if category and category != "all":
         templates = await db_fetchall("SELECT * FROM message_templates WHERE category = ? ORDER BY sort_order, template_name", (category,))
     else:
         templates = await db_fetchall("SELECT * FROM message_templates ORDER BY category, sort_order, template_name")
