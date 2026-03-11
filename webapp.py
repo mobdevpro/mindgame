@@ -888,63 +888,41 @@ async function completeTask(taskId) {
 const CAT_EMOJI = { digital:'📱', consultation:'📞', course:'📚', physical:'🎁' };
 
 async function renderShop(el) {
-  const data = await api('/api/shop');
-  const products = data.products;
-  const balance = data.balance;
-  const bought = new Set(data.bought_ids);
+  const data = await api('/api/me');
+  const balance = data.points;
 
   let html = `
     <div class="page-title">Магазин</div>
+    
+    <!-- Баланс -->
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-size:13px;color:var(--muted)">Твой баланс</div>
-          <div style="font-size:28px;font-weight:800;color:var(--gold)">⭐ ${balance}</div>
+          <div style="font-size:13px;color:var(--text-secondary)">Твой баланс</div>
+          <div style="font-size:28px;font-weight:800;color:var(--primary)">⭐ ${balance}</div>
         </div>
         <div style="font-size:40px">🛍️</div>
       </div>
     </div>
+    
+    <!-- Сообщение о разработке -->
+    <div class="card" style="text-align:center;padding:32px 24px">
+      <div style="font-size:48px;margin-bottom:16px">🚧</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:12px">Магазин в разработке!</div>
+      <div style="color:var(--text-secondary);line-height:1.6;margin-bottom:24px">
+        Скоро здесь появятся:<br><br>
+        <span style="font-size:24px">📱</span> Цифровые материалы<br>
+        <span style="font-size:24px">🎙</span> Консультации<br>
+        <span style="font-size:24px">📚</span> Курсы<br>
+        <span style="font-size:24px">🎁</span> Мерч
+      </div>
+      <div style="font-size:14px;color:var(--text-secondary)">
+        Следи за обновлениями! 👀
+      </div>
+    </div>
   `;
-
-  if (!products.length) {
-    html += `<div class="empty"><div class="empty-icon">🛒</div><div class="empty-text">Магазин пуст</div></div>`;
-  } else {
-    html += products.map(p => {
-      const isBought = bought.has(p.id);
-      const canBuy = balance >= p.price_points && !isBought;
-      const emojiRe = new RegExp("^[\\u{1F300}-\\u{1FAFF}\\u{2600}-\\u{27BF}]", "u");
-  const emoji = emojiRe.exec(p.title)?.[0] || CAT_EMOJI[p.category] || '🎁';
-      return `
-        <div class="product-card">
-          <div class="product-emoji">${emoji}</div>
-          <div class="product-info">
-            <div class="product-title">${escHtml(p.title)}</div>
-            <div class="product-desc">${escHtml(p.description || '')}</div>
-            <div class="product-footer">
-              <div class="product-price">⭐ ${p.price_points}</div>
-              ${isBought
-                ? `<button class="btn btn-bought" disabled>✓ Куплено</button>`
-                : `<button class="btn btn-buy" ${!canBuy ? 'disabled' : ''} onclick="buyProduct(${p.id}, '${escHtml(p.title)}')">${canBuy ? 'Купить' : `Нужно ${p.price_points - balance} ⭐`}</button>`
-              }
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
+  
   el.innerHTML = html;
-}
-
-async function buyProduct(productId, title) {
-  if (!confirm(`Купить «${title}»?`)) return;
-  try {
-    const result = await api(`/api/shop/${productId}/buy`, { method: 'POST' });
-    tg.HapticFeedback?.notificationOccurred('success');
-    toast(`✅ Куплено! Баланс: ${result.balance} ⭐`);
-    await renderShop(document.getElementById('content'));
-  } catch (e) {
-    toast('❌ ' + e.message);
-  }
 }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
