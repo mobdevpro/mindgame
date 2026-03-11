@@ -409,7 +409,7 @@ async def start_reflection(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         f"🔍 <b>Разбор триггера</b>\n\n"
         f"<i>«{trigger['raw_text'][:100]}»</i>\n\n"
-        f"<b>Шаг 1/5:</b> {q}\n\n<i>(Напиши ответ или пропусти)</i>",
+        f"<b>Шаг 1/3:</b> {q}\n\n<i>(Напиши ответ или пропусти)</i>",
         parse_mode="HTML",
         reply_markup=kb.skip_keyboard()
     )
@@ -432,7 +432,7 @@ async def reflect_step_1_answer(message: Message, state: FSMContext):
     q = await ai.generate_reflection_prompt(data["reflect_text"], data["reflect_emotion"], step=2)
     await message.answer(
         f"✅ Шаг 1 принят.\n\n"
-        f"<b>Шаг 2/5:</b> {q}\n\n<i>(Напиши ответ или пропусти)</i>",
+        f"<b>Шаг 2/3:</b> {q}\n\n<i>(Напиши ответ или пропусти)</i>",
         parse_mode="HTML",
         reply_markup=kb.skip_keyboard()
     )
