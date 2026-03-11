@@ -409,11 +409,169 @@ async def start_reflection(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         f"🔍 <b>Разбор триггера</b>\n\n"
         f"<i>«{trigger['raw_text'][:100]}»</i>\n\n"
-        f"<b>Шаг 1/5:</b> {q}",
+        f"<b>Шаг 1/5:</b> {q}\n\n<i>(Напиши ответ или пропусти)</i>",
         parse_mode="HTML",
         reply_markup=kb.skip_keyboard()
     )
-    await state.set_state(TriggerStates.waiting_zone)
+    await state.set_state(TriggerStates.reflect_step_1)
+    await callback.answer()
+
+
+# Handler for reflection step 1 answer
+@router.message(TriggerStates.reflect_step_1, F.text)
+async def reflect_step_1_answer(message: Message, state: FSMContext):
+    answer = message.text.strip()
+    data = await state.get_data()
+    trigger_id = data.get("reflect_trigger_id")
+    
+    # Save answer
+    if answer and answer != "⏭ Пропустить":
+        await db.save_trigger_reflection(trigger_id, "step_1", answer)
+    
+    # Step 2
+    q = await ai.generate_reflection_prompt(data["reflect_text"], data["reflect_emotion"], step=2)
+    await message.answer(
+        f"✅ Шаг 1 принят.\n\n"
+        f"<b>Шаг 2/5:</b> {q}\n\n<i>(Напиши ответ или пропусти)</i>",
+        parse_mode="HTML",
+        reply_markup=kb.skip_keyboard()
+    )
+    await state.set_state(TriggerStates.reflect_step_2)
+
+
+# Handler for reflection step 2 answer
+@router.message(TriggerStates.reflect_step_2, F.text)
+async def reflect_step_2_answer(message: Message, state: FSMContext):
+    answer = message.text.strip()
+    data = await state.get_data()
+    trigger_id = data.get("reflect_trigger_id")
+    
+    # Save answer
+    if answer and answer != "⏭ Пропустить":
+        await db.save_trigger_reflection(trigger_id, "step_2", answer)
+    
+    # Step 3
+    q = await ai.generate_reflection_prompt(data["reflect_text"], data["reflect_emotion"], step=3)
+    await message.answer(
+        f"✅ Шаг 2 принят.\n\n"
+        f"<b>Шаг 3/5:</b> {q}\n\n<i>(Напиши ответ или пропусти)</i>",
+        parse_mode="HTML",
+        reply_markup=kb.skip_keyboard()
+    )
+    await state.set_state(TriggerStates.reflect_step_3)
+
+
+# Handler for reflection step 3 answer
+@router.message(TriggerStates.reflect_step_3, F.text)
+async def reflect_step_3_answer(message: Message, state: FSMContext):
+    answer = message.text.strip()
+    data = await state.get_data()
+    trigger_id = data.get("reflect_trigger_id")
+    
+    # Save answer
+    if answer and answer != "⏭ Пропустить":
+        await db.save_trigger_reflection(trigger_id, "step_3", answer)
+    
+    # Step 4
+    q = await ai.generate_reflection_prompt(data["reflect_text"], data["reflect_emotion"], step=4)
+    await message.answer(
+        f"✅ Шаг 3 принят.\n\n"
+        f"<b>Шаг 4/5:</b> {q}\n\n<i>(Напиши ответ или пропусти)</i>",
+        parse_mode="HTML",
+        reply_markup=kb.skip_keyboard()
+    )
+    await state.set_state(TriggerStates.reflect_step_4)
+
+
+# Handler for reflection step 4 answer
+@router.message(TriggerStates.reflect_step_4, F.text)
+async def reflect_step_4_answer(message: Message, state: FSMContext):
+    answer = message.text.strip()
+    data = await state.get_data()
+    trigger_id = data.get("reflect_trigger_id")
+    
+    # Save answer
+    if answer and answer != "⏭ Пропустить":
+        await db.save_trigger_reflection(trigger_id, "step_4", answer)
+    
+    # Step 5
+    q = await ai.generate_reflection_prompt(data["reflect_text"], data["reflect_emotion"], step=5)
+    await message.answer(
+        f"✅ Шаг 4 принят.\n\n"
+        f"<b>Шаг 5/5:</b> {q}\n\n<i>(Напиши ответ или пропусти)</i>",
+        parse_mode="HTML",
+        reply_markup=kb.skip_keyboard()
+    )
+    await state.set_state(TriggerStates.reflect_step_5)
+
+
+# Handler for reflection step 5 answer - FINAL STEP
+@router.message(TriggerStates.reflect_step_5, F.text)
+async def reflect_step_5_answer(message: Message, state: FSMContext):
+    answer = message.text.strip()
+    data = await state.get_data()
+    trigger_id = data.get("reflect_trigger_id")
+    
+    # Save answer
+    if answer and answer != "⏭ Пропустить":
+        await db.save_trigger_reflection(trigger_id, "step_5", answer)
+    
+    # Complete reflection
+    await message.answer(
+        f"✅ <b>Разбор завершён!</b>\n\n"
+        f"Ты прошёл(а) все 5 шагов рефлексии.\n"
+        f"Это большой шаг к осознанности! 🙏\n\n"
+        f"🎉 +10 очков за глубокую работу!\n"
+        f"💰 Баланс: {data.get('balance', '—')}",
+        parse_mode="HTML",
+        reply_markup=kb.after_trigger_keyboard(trigger_id)
+    )
+    
+    # Award bonus points for completing reflection
+    user = await db.get_user(message.from_user.id)
+    if user:
+        await db.award_points(message.from_user.id, 10, "reflection_complete", f"Рефлексия триггера #{trigger_id}")
+    
+    await state.clear()
+
+
+# Skip handlers for reflection
+@router.callback_query(TriggerStates.reflect_step_1, F.data == "skip_step")
+@router.callback_query(TriggerStates.reflect_step_2, F.data == "skip_step")
+@router.callback_query(TriggerStates.reflect_step_3, F.data == "skip_step")
+@router.callback_query(TriggerStates.reflect_step_4, F.data == "skip_step")
+@router.callback_query(TriggerStates.reflect_step_5, F.data == "skip_step")
+async def reflect_skip_step(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    current_state = await state.get_state()
+    step_num = int(current_state.split("_")[-1])
+    trigger_id = data.get("reflect_trigger_id")
+    
+    # Save empty answer for skipped step
+    await db.save_trigger_reflection(trigger_id, f"step_{step_num}", "")
+    
+    if step_num >= 5:
+        # Final step - complete
+        await callback.message.answer(
+            f"✅ <b>Разбор завершён!</b>\n\n"
+            f"Ты прошёл(а) все 5 шагов рефлексии.\n"
+            f"Это большой шаг к осознанности! 🙏",
+            parse_mode="HTML",
+            reply_markup=kb.after_trigger_keyboard(trigger_id)
+        )
+        await state.clear()
+    else:
+        # Next step
+        next_step = step_num + 1
+        q = await ai.generate_reflection_prompt(data["reflect_text"], data["reflect_emotion"], step=next_step)
+        await callback.message.answer(
+            f"✅ Пропущено.\n\n"
+            f"<b>Шаг {next_step}/5:</b> {q}\n\n<i>(Напиши ответ или пропусти)</i>",
+            parse_mode="HTML",
+            reply_markup=kb.skip_keyboard()
+        )
+        await state.set_state(getattr(TriggerStates, f"reflect_step_{next_step}"))
+    
     await callback.answer()
 
 

@@ -12,6 +12,12 @@ class TriggerStates(StatesGroup):
     waiting_zone = State()
     waiting_insight = State()
     waiting_next_action = State()
+    # Reflection states
+    reflect_step_1 = State()
+    reflect_step_2 = State()
+    reflect_step_3 = State()
+    reflect_step_4 = State()
+    reflect_step_5 = State()
 
 
 class DiaryStates(StatesGroup):

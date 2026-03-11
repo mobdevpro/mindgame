@@ -888,3 +888,15 @@ async def get_user_referrals(user_id: int) -> list[dict]:
             ORDER BY r.created_at DESC
         """, (user_id,)) as cursor:
             return [dict(r) for r in await cursor.fetchall()]
+
+
+async def save_trigger_reflection(trigger_id: int, question_key: str, answer_text: str) -> int:
+    """Save a reflection answer for a trigger."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("""
+            INSERT INTO trigger_reflections (trigger_id, question_key, answer_text)
+            VALUES (?, ?, ?)
+        """, (trigger_id, question_key, answer_text))
+        reflection_id = cursor.lastrowid
+        await db.commit()
+        return reflection_id
