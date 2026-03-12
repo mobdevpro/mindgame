@@ -1,5 +1,5 @@
 """
-AI Service — Anthropic Claude + Vosk Speech-to-Text
+AI Service — Anthropic Claude + Groq (free) + Vosk Speech-to-Text
 """
 import os
 import json
@@ -7,6 +7,14 @@ import wave
 import subprocess
 import anthropic
 from config import ANTHROPIC_API_KEY
+
+# Groq Cloud (бесплатная альтернатива)
+try:
+    from groq import Groq
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+    groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+except ImportError:
+    groq_client = None
 
 # ═══════════════════════════════════════════════════════════════
 # ANTHROPIC CLAUDE (анализ эмоций)
@@ -49,18 +57,64 @@ CATEGORY_LABELS = {
 
 
 async def analyze_trigger(text: str) -> dict:
-    """Analyze trigger text: detect emotion and category using Claude."""
-    if not ANTHROPIC_API_KEY:
-        return {"emotion": "other", "category": "other", "ai_response": ""}
+    """Analyze trigger text: detect emotion and category using AI."""
+    
+    # Пробуем Groq (бесплатно)
+    if groq_client:
+        try:
+            return await _analyze_with_groq(text)
+        except Exception as e:
+            import logging
+            logging.warning(f"Groq failed: {e}, falling back to Claude")
+    
+    # Если нет Groq или ошибка — пробуем Claude
+    if ANTHROPIC_API_KEY and ANTHROPIC_API_KEY != "your_anthropic_api_key_here":
+        try:
+            return await _analyze_with_claude(text)
+        except Exception as e:
+            import logging
+            logging.warning(f"Claude failed: {e}")
+    
+    # Если ничего не работает — возвращаем дефолт
+    return {"emotion": "other", "category": "other", "brief_response": "Спасибо, что зафиксировал это."}
 
-    try:
-        client = get_client()
-        message = client.messages.create(
-            model="claude-3-5-haiku-20241022",  # Более умная модель
-            max_tokens=300,
-            messages=[{
-                "role": "user",
-                "content": f"""Проанализируй этот триггер (эмоциональную реакцию):
+
+async def _analyze_with_groq(text: str) -> dict:
+    """Анализ через Groq Cloud (бесплатно)."""
+    completion = groq_client.chat.completions.create(
+        model="llama-3.2-3b-instant",
+        messages=[{
+            "role": "user",
+            "content": f"""Проанализируй этот триггер:
+
+"{text}"
+
+Выбери ОДНУ эмоцию: anger, irritation, sadness, fear, anxiety, shame, resentment, numbness, other
+Выбери ОДНУ категорию: relationships, work, self_image, boundaries, recognition, control, abandonment, health, money, other
+
+Ответь ТОЛЬКО JSON:
+{{
+  "emotion": "<код>",
+  "category": "<код>",
+  "brief_response": "<1-2 предложения>"
+}}"""
+        }],
+        temperature=0.3,
+        max_tokens=200
+    )
+    result = json.loads(completion.choices[0].message.content.strip())
+    return result
+
+
+async def _analyze_with_claude(text: str) -> dict:
+    """Анализ через Anthropic Claude."""
+    client = get_client()
+    message = client.messages.create(
+        model="claude-3-5-haiku-20241022",
+        max_tokens=300,
+        messages=[{
+            "role": "user",
+            "content": f"""Проанализируй этот триггер (эмоциональную реакцию):
 
 "{text}"
 
@@ -93,12 +147,10 @@ async def analyze_trigger(text: str) -> dict:
   "category": "<код категории>",
   "brief_response": "<короткий (1-2 предложения) эмпатичный ответ-наблюдение без обвинений>"
 }}"""
-            }]
-        )
-        result = json.loads(message.content[0].text.strip())
-        return result
-    except Exception as e:
-        return {"emotion": "other", "category": "other", "brief_response": "Спасибо, что зафиксировал это."}
+        }]
+    )
+    result = json.loads(message.content[0].text.strip())
+    return result
 
 
 async def generate_reflection_prompt(trigger_text: str, emotion: str, step: int) -> str:
