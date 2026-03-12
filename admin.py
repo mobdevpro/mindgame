@@ -524,33 +524,114 @@ async def logout(request: Request):
 
 @app.get("/admin", response_class=HTMLResponse)
 async def dashboard(request: Request):
+    # Users stats
     total_users = await db_fetchone("SELECT COUNT(*) as c FROM users")
     active_today = await db_fetchone("SELECT COUNT(*) as c FROM users WHERE date(updated_at)=date('now')")
+    subscribed = await db_fetchone("SELECT COUNT(*) as c FROM users WHERE is_subscribed=1")
+    
+    # Triggers stats
     triggers_today = await db_fetchone("SELECT COUNT(*) as c FROM triggers WHERE date(created_at)=date('now')")
+    triggers_week = await db_fetchone("SELECT COUNT(*) as c FROM triggers WHERE date(created_at)>=date('now','-7 days')")
     triggers_total = await db_fetchone("SELECT COUNT(*) as c FROM triggers")
+    triggers_with_emotion = await db_fetchone("SELECT COUNT(*) as c FROM triggers WHERE emotion_code IS NOT NULL")
+    triggers_with_intensity = await db_fetchone("SELECT COUNT(*) as c FROM triggers WHERE intensity IS NOT NULL")
+    
+    # Diary stats
+    diary_today = await db_fetchone("SELECT COUNT(*) as c FROM diary_entries WHERE date(created_at)=date('now')")
+    diary_week = await db_fetchone("SELECT COUNT(*) as c FROM diary_entries WHERE date(created_at)>=date('now','-7 days')")
     diary_total = await db_fetchone("SELECT COUNT(*) as c FROM diary_entries")
+    
+    # Tasks stats
+    tasks_total = await db_fetchone("SELECT COUNT(*) as c FROM tasks")
+    tasks_new = await db_fetchone("SELECT COUNT(*) as c FROM tasks WHERE status='new'")
+    tasks_done = await db_fetchone("SELECT COUNT(*) as c FROM tasks WHERE status='done'")
+    
+    # Achievements stats
+    achievements_total = await db_fetchone("SELECT COUNT(*) as c FROM user_achievements")
+    
+    # Referrals stats
+    referrals_total = await db_fetchone("SELECT COUNT(*) as c FROM users WHERE referred_by_user_id IS NOT NULL")
+    
+    # Points stats
     points_total = await db_fetchone("SELECT COALESCE(SUM(points_balance),0) as c FROM users")
+    points_awarded = await db_fetchone("SELECT COALESCE(SUM(points_delta),0) as c FROM rewards_log")
+    
+    # Message templates stats
+    messages_total = await db_fetchone("SELECT COUNT(*) as c FROM message_templates")
+    messages_active = await db_fetchone("SELECT COUNT(*) as c FROM message_templates WHERE is_active=1")
 
+    # Recent data
     recent_users = await db_fetchall("""
         SELECT telegram_id, first_name, username, points_balance, xp_balance, streak_days, created_at
         FROM users ORDER BY created_at DESC LIMIT 5
     """)
 
     recent_triggers = await db_fetchall("""
-        SELECT t.id, t.raw_text, t.emotion_code, t.points_awarded, t.created_at,
+        SELECT t.id, t.raw_text, t.emotion_code, t.intensity, t.points_awarded, t.created_at,
                u.first_name, u.telegram_id
         FROM triggers t JOIN users u ON t.user_id = u.id
         ORDER BY t.created_at DESC LIMIT 5
     """)
+    
+    recent_diary = await db_fetchall("""
+        SELECT d.id, d.body, d.mood_code, d.points_awarded, d.created_at,
+               u.first_name, u.telegram_id
+        FROM diary_entries d JOIN users u ON d.user_id = u.id
+        ORDER BY d.created_at DESC LIMIT 5
+    """)
+    
+    recent_tasks = await db_fetchall("""
+        SELECT t.id, t.title, t.status, t.estimated_points, t.created_at,
+               u.first_name, u.telegram_id
+        FROM tasks t JOIN users u ON t.user_id = u.id
+        ORDER BY t.created_at DESC LIMIT 5
+    """)
+
+    # Top emotions
+    top_emotions = await db_fetchall("""
+        SELECT emotion_code, COUNT(*) as cnt FROM triggers
+        WHERE emotion_code IS NOT NULL
+        GROUP BY emotion_code ORDER BY cnt DESC LIMIT 5
+    """)
+    
+    emotion_labels = {
+        'anger': '😤 Злость',
+        'sadness': '😔 Грусть',
+        'fear': '😨 Страх',
+        'shame': '😳 Стыд',
+        'anxiety': '😟 Тревога',
+        'resentment': '😞 Обида',
+        'irritation': '😤 Раздражение',
+        'numbness': '😶 Онемение',
+        'other': '💭 Другое'
+    }
 
     stats_html = f"""
     <div class="stats">
-      <div class="stat"><div class="stat-value">{total_users['c']}</div><div class="stat-label">Всего пользователей</div></div>
+      <div class="stat"><div class="stat-value">{total_users['c']}</div><div class="stat-label">Пользователей</div></div>
       <div class="stat"><div class="stat-value">{active_today['c']}</div><div class="stat-label">Активных сегодня</div></div>
-      <div class="stat"><div class="stat-value">{triggers_today['c']}</div><div class="stat-label">Триггеров сегодня</div></div>
+      <div class="stat"><div class="stat-value">{subscribed['c']}</div><div class="stat-label">Подписано</div></div>
+      <div class="stat"><div class="stat-value">{referrals_total['c']}</div><div class="stat-label">Рефералов</div></div>
+    </div>
+    
+    <div class="stats">
       <div class="stat"><div class="stat-value">{triggers_total['c']}</div><div class="stat-label">Триггеров всего</div></div>
+      <div class="stat"><div class="stat-value">{triggers_today['c']}</div><div class="stat-label">Триггеров сегодня</div></div>
+      <div class="stat"><div class="stat-value">{triggers_week['c']}</div><div class="stat-label">Триггеров за неделю</div></div>
       <div class="stat"><div class="stat-value">{diary_total['c']}</div><div class="stat-label">Записей дневника</div></div>
-      <div class="stat"><div class="stat-value">{points_total['c']}</div><div class="stat-label">Баллов начислено</div></div>
+    </div>
+    
+    <div class="stats">
+      <div class="stat"><div class="stat-value">{tasks_total['c']}</div><div class="stat-label">Задач всего</div></div>
+      <div class="stat"><div class="stat-value">{tasks_new['c']}</div><div class="stat-label">Новых задач</div></div>
+      <div class="stat"><div class="stat-value">{tasks_done['c']}</div><div class="stat-label">Выполнено</div></div>
+      <div class="stat"><div class="stat-value">{achievements_total['c']}</div><div class="stat-label">Достижений</div></div>
+    </div>
+    
+    <div class="stats">
+      <div class="stat"><div class="stat-value">{points_total['c']}</div><div class="stat-label">Баллов у пользователей</div></div>
+      <div class="stat"><div class="stat-value">{points_awarded['c']}</div><div class="stat-label">Баллов начислено</div></div>
+      <div class="stat"><div class="stat-value">{messages_active['c']}</div><div class="stat-label">Шаблонов сообщений</div></div>
     </div>"""
 
     users_rows = "".join(f"""
@@ -564,27 +645,76 @@ async def dashboard(request: Request):
 
     trigger_rows = "".join(f"""
     <tr>
-      <td class="trigger-text" title="{t['raw_text']}">{t['raw_text'][:60]}...</td>
+      <td class="trigger-text" title="{t['raw_text']}">{t['raw_text'][:50]}...</td>
       <td><a href="/users/{t['telegram_id']}">{t['first_name']}</a></td>
       <td>{t.get('emotion_code') or '—'}</td>
+      <td>{t.get('intensity') or '—'}</td>
       <td>+{t.get('points_awarded', 0)}</td>
       <td style="color:#9CA3AF;font-size:12px">{t['created_at'][:16]}</td>
     </tr>""" for t in recent_triggers)
+    
+    diary_rows = "".join(f"""
+    <tr>
+      <td class="trigger-text" title="{d['body']}">{d['body'][:50]}...</td>
+      <td><a href="/users/{d['telegram_id']}">{d['first_name']}</a></td>
+      <td>{d.get('mood_code') or '—'}</td>
+      <td>+{d.get('points_awarded', 0)}</td>
+      <td style="color:#9CA3AF;font-size:12px">{d['created_at'][:16]}</td>
+    </tr>""" for d in recent_diary)
+    
+    task_rows = "".join(f"""
+    <tr>
+      <td class="trigger-text" title="{t['title']}">{t['title'][:50]}...</td>
+      <td><a href="/users/{t['telegram_id']}">{t['first_name']}</a></td>
+      <td>{'✅' if t['status']=='done' else '⏳' if t['status']=='in_progress' else '🆕'}</td>
+      <td>+{t.get('estimated_points', 0)}</td>
+      <td style="color:#9CA3AF;font-size:12px">{t['created_at'][:16]}</td>
+    </tr>""" for t in recent_tasks)
+    
+    emotion_rows = "".join(f"""
+    <tr>
+      <td>{emotion_labels.get(e['emotion_code'], e['emotion_code'])}</td>
+      <td><b>{e['cnt']}</b></td>
+      <td><div class="progress-bar" style="width:150px"><div class="progress-fill" style="width:{min(100, e['cnt']*5)}%"></div></div></td>
+    </tr>""" for e in top_emotions)
 
     content = f"""
     {stats_html}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    
+    <!-- Top Emotions -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">🎭 Топ эмоций</h3>
+      <table><thead><tr><th>Эмоция</th><th>Количество</th><th>Прогресс</th></tr></thead>
+      <tbody>{emotion_rows}</tbody></table>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px">
       <div class="card">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">Новые пользователи</h3>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">👥 Новые пользователи</h3>
         <table><thead><tr><th>Имя</th><th>Уровень</th><th>Баллы</th><th>Серия</th><th>Дата</th></tr></thead>
         <tbody>{users_rows}</tbody></table>
         <div style="margin-top:12px"><a href="/users">Все пользователи →</a></div>
       </div>
+      
       <div class="card">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">Последние триггеры</h3>
-        <table><thead><tr><th>Триггер</th><th>Пользователь</th><th>Эмоция</th><th>Очки</th><th>Время</th></tr></thead>
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">📝 Последние триггеры</h3>
+        <table><thead><tr><th>Триггер</th><th>Пользователь</th><th>Эмоция</th><th>Инт.</th><th>Очки</th><th>Время</th></tr></thead>
         <tbody>{trigger_rows}</tbody></table>
         <div style="margin-top:12px"><a href="/triggers">Все триггеры →</a></div>
+      </div>
+      
+      <div class="card">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">📔 Последние записи дневника</h3>
+        <table><thead><tr><th>Запись</th><th>Пользователь</th><th>Настроение</th><th>Очки</th><th>Время</th></tr></thead>
+        <tbody>{diary_rows}</tbody></table>
+        <div style="margin-top:12px"><a href="/diary">Все записи →</a></div>
+      </div>
+      
+      <div class="card">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">✅ Последние задачи</h3>
+        <table><thead><tr><th>Задача</th><th>Пользователь</th><th>Статус</th><th>Очки</th><th>Время</th></tr></thead>
+        <tbody>{task_rows}</tbody></table>
+        <div style="margin-top:12px"><a href="/tasks">Все задачи →</a></div>
       </div>
     </div>"""
 
