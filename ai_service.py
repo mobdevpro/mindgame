@@ -42,6 +42,8 @@ CATEGORY_LABELS = {
     "recognition": "🏅 Признание",
     "control": "🎛 Контроль",
     "abandonment": "💔 Покинутость",
+    "health": "💪 Здоровье",
+    "money": "💰 Финансы",
     "other": "💭 Другое",
 }
 
@@ -54,7 +56,7 @@ async def analyze_trigger(text: str) -> dict:
     try:
         client = get_client()
         message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",  # Более умная модель
             max_tokens=300,
             messages=[{
                 "role": "user",
@@ -62,10 +64,33 @@ async def analyze_trigger(text: str) -> dict:
 
 "{text}"
 
+Выбери ОДНУ основную эмоцию из списка:
+- anger (Злость, гнев, ярость)
+- irritation (Раздражение, недовольство)
+- sadness (Грусть, печаль, тоска)
+- fear (Страх, испуг)
+- anxiety (Тревога, беспокойство, нервное напряжение)
+- shame (Стыд, вина, неловкость)
+- resentment (Обида, разочарование в человеке)
+- numbness (Онемение, пустота, отсутствие чувств)
+- other (Другое, если ничего не подходит)
+
+Выбери ОДНУ категорию причины из списка:
+- relationships (Отношения с партнёром, семьёй, друзьями)
+- work (Работа, карьера, дедлайны, задачи)
+- self_image (Образ себя, самооценка, сравнение с другими)
+- boundaries (Личные границы, когда их нарушают)
+- recognition (Признание, когда не ценят, игнорируют)
+- control (Контроль, когда всё идёт не по плану)
+- abandonment (Покинутость, одиночество, отвержение)
+- health (Здоровье, усталость, физическое состояние)
+- money (Финансы, деньги, покупки)
+- other (Другое, если ничего не подходит)
+
 Ответь ТОЛЬКО в формате JSON (без ```json```, только чистый JSON):
 {{
-  "emotion": "<одно из: anger, sadness, fear, shame, anxiety, resentment, irritation, numbness, other>",
-  "category": "<одно из: relationships, work, self_image, boundaries, recognition, control, abandonment, other>",
+  "emotion": "<код эмоции>",
+  "category": "<код категории>",
   "brief_response": "<короткий (1-2 предложения) эмпатичный ответ-наблюдение без обвинений>"
 }}"""
             }]
