@@ -230,7 +230,7 @@ async def view_task(callback: CallbackQuery, state: FSMContext):
         f"Сложность: {label}\n"
         f"Статус: {status}\n"
         f"Награда: +{task.get('estimated_points') or points} баллов\n"
-        f"Добавлена: {task['created_at'][:10]}"
+        f"Добавлена: {db.fmt_date(task['created_at'], short=True)}"
     )
     if task.get("points_awarded"):
         text += f"\n\n🎉 Получено: <b>+{task['points_awarded']} баллов</b>"

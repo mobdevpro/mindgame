@@ -933,7 +933,10 @@ function escHtml(s) {
 function fmtDate(s) {
   if (!s) return '';
   const d = new Date(s.replace(' ','T') + 'Z');
-  return d.toLocaleDateString('ru-RU', { day:'numeric', month:'short' });
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day}.${month}.${year}`;
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────

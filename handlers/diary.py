@@ -33,7 +33,7 @@ async def start_diary(message: Message, state: FSMContext):
         text = "📔 <b>Дневник осознанности</b>\n\nТы уже сделал запись сегодня! 🌟\n\n"
         text += "<b>Последние записи:</b>\n\n"
         for e in entries:
-            date = e["created_at"][:10]
+            date = db.fmt_date(e['created_at'], short=True)
             preview = e["body"][:60] + "..." if len(e["body"]) > 60 else e["body"]
             text += f"📅 {date}\n<i>{preview}</i>\n\n"
         await message.answer(text, parse_mode="HTML", reply_markup=kb.main_menu())

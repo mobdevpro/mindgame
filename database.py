@@ -2,6 +2,25 @@ import aiosqlite
 from config import DB_PATH
 
 
+def fmt_date(date_str: str, short: bool = False) -> str:
+    """Форматирует дату из БД в формат ДД.ММ.ГГ или ДД.ММ.ГГ ЧЧ:ММ."""
+    if not date_str:
+        return "—"
+    try:
+        if " " in date_str:
+            date_part, time_part = date_str.split(" ")
+            year, month, day = date_part.split("-")
+            hour, minute = time_part.split(":")[:2]
+            if short:
+                return f"{day}.{month}.{year[2:]}"
+            return f"{day}.{month}.{year[2:]} {hour}:{minute}"
+        else:
+            year, month, day = date_str.split("-")
+            return f"{day}.{month}.{year[2:]}"
+    except Exception:
+        return date_str[:10] if short else date_str[:16]
+
+
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript("""

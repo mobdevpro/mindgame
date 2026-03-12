@@ -609,7 +609,7 @@ async def view_trigger(callback: CallbackQuery, state: FSMContext):
 
     text = (
         f"📌 <b>Триггер</b>\n"
-        f"<i>{t['created_at'][:10]}</i>\n\n"
+        f"<i>{db.fmt_date(t['created_at'], short=True)}</i>\n\n"
         f"📝 {t['raw_text']}\n\n"
         f"💭 Эмоция: {emotion_label}\n"
         f"⚡ Интенсивность: {t.get('intensity') or '—'}/10\n"

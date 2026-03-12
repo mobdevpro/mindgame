@@ -100,6 +100,26 @@ def level_badge(xp: int) -> str:
     return f'<span style="background:{color};color:white;padding:2px 8px;border-radius:12px;font-size:12px">Ур.{level_num} {level_name}</span>'
 
 
+def fmt_date(date_str: str, short: bool = False) -> str:
+    """Форматирует дату из БД в формат ДД.ММ.ГГ или ДД.ММ.ГГ ЧЧ:ММ."""
+    if not date_str:
+        return "—"
+    try:
+        # Формат БД: 2026-03-10 14:30:00
+        if " " in date_str:
+            date_part, time_part = date_str.split(" ")
+            year, month, day = date_part.split("-")
+            hour, minute = time_part.split(":")[:2]
+            if short:
+                return f"{day}.{month}.{year[2:]}"
+            return f"{day}.{month}.{year[2:]} {hour}:{minute}"
+        else:
+            year, month, day = date_str.split("-")
+            return f"{day}.{month}.{year[2:]}"
+    except Exception:
+        return date_str[:10] if short else date_str[:16]
+
+
 def page(title: str, content: str, active: str = "") -> str:
     from config import IS_TEST_ENV
     
@@ -631,7 +651,7 @@ async def dashboard(request: Request):
       <td>{level_badge(u.get('xp_balance', 0))}</td>
       <td><b>{u.get('points_balance', 0)}</b></td>
       <td>🔥 {u.get('streak_days', 0)} дн.</td>
-      <td style="color:#9CA3AF;font-size:12px">{u['created_at'][:10]}</td>
+      <td style="color:#9CA3AF;font-size:12px">{fmt_date(u['created_at'], short=True)}}</td>
     </tr>""" for u in recent_users)
 
     trigger_rows = "".join(f"""
@@ -641,7 +661,7 @@ async def dashboard(request: Request):
       <td>{t.get('emotion_code') or '—'}</td>
       <td>{t.get('intensity') or '—'}</td>
       <td>+{t.get('points_awarded', 0)}</td>
-      <td style="color:#9CA3AF;font-size:12px">{t['created_at'][:16]}</td>
+      <td style="color:#9CA3AF;font-size:12px">{fmt_date(t['created_at'])}}</td>
     </tr>""" for t in recent_triggers)
     
     diary_rows = "".join(f"""
@@ -650,7 +670,7 @@ async def dashboard(request: Request):
       <td><a href="/users/{d['telegram_id']}">{d['first_name']}</a></td>
       <td>{d.get('mood_code') or '—'}</td>
       <td>+{d.get('points_awarded', 0)}</td>
-      <td style="color:#9CA3AF;font-size:12px">{d['created_at'][:16]}</td>
+      <td style="color:#9CA3AF;font-size:12px">{fmt_date(d['created_at'])}}</td>
     </tr>""" for d in recent_diary)
     
     task_rows = "".join(f"""
@@ -659,7 +679,7 @@ async def dashboard(request: Request):
       <td><a href="/users/{t['telegram_id']}">{t['first_name']}</a></td>
       <td>{'✅' if t['status']=='done' else '⏳' if t['status']=='in_progress' else '🆕'}</td>
       <td>+{t.get('estimated_points', 0)}</td>
-      <td style="color:#9CA3AF;font-size:12px">{t['created_at'][:16]}</td>
+      <td style="color:#9CA3AF;font-size:12px">{fmt_date(t['created_at'])}}</td>
     </tr>""" for t in recent_tasks)
     
     emotion_rows = "".join(f"""
@@ -715,7 +735,7 @@ async def dashboard(request: Request):
         <tr>
           <td>🏆 {a.get('title', '—')}</td>
           <td><a href="/users/{a['telegram_id']}">{a['first_name']}</a></td>
-          <td style="color:#9CA3AF;font-size:12px">{a['awarded_at'][:10]}</td>
+          <td style="color:#9CA3AF;font-size:12px">{fmt_date(a['awarded_at'], short=True)}}</td>
         </tr>""" for a in await db_fetchall("""
             SELECT ua.awarded_at, a.title, a.icon, u.first_name, u.telegram_id
             FROM user_achievements ua
@@ -777,7 +797,7 @@ async def users_list(request: Request, search: str = ""):
       <td>{u.get('trigger_count', 0)}</td>
       <td>🔥 {u.get('streak_days', 0)}</td>
       <td>{'✅' if u.get('is_subscribed') else '❌'}</td>
-      <td style="color:#9CA3AF;font-size:12px">{u['created_at'][:10]}</td>
+      <td style="color:#9CA3AF;font-size:12px">{fmt_date(u['created_at'], short=True)}}</td>
     </tr>""" for u in users)
 
     content = f"""
@@ -833,7 +853,7 @@ async def user_detail(request: Request, telegram_id: int):
       <td>{t.get('intensity') or '—'}</td>
       <td>{t.get('category_code') or '—'}</td>
       <td>+{t.get('points_awarded', 0)}</td>
-      <td style="color:#9CA3AF;font-size:12px">{t['created_at'][:16]}</td>
+      <td style="color:#9CA3AF;font-size:12px">{fmt_date(t['created_at'])}}</td>
     </tr>""" for t in triggers)
 
     reward_rows = "".join(f"""
@@ -843,7 +863,7 @@ async def user_detail(request: Request, telegram_id: int):
         {'+'if r['points_delta'] >= 0 else ''}{r['points_delta']}
       </td>
       <td><b>{r['balance_after']}</b></td>
-      <td style="color:#9CA3AF;font-size:12px">{r['created_at'][:16]}</td>
+      <td style="color:#9CA3AF;font-size:12px">{fmt_date(r['created_at'])}}</td>
     </tr>""" for r in rewards)
 
     content = f"""
@@ -864,7 +884,7 @@ async def user_detail(request: Request, telegram_id: int):
           <div>🔥 Серия: {user.get('streak_days', 0)} дн.</div>
           <div>📝 Триггеров: {len(triggers)}</div>
           <div>{'✅ Подписан' if user.get('is_subscribed') else '❌ Не подписан'}</div>
-          <div style="color:#9CA3AF">С {user['created_at'][:10]}</div>
+          <div style="color:#9CA3AF">С {user['created_at'], short=True)}</div>
         </div>
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid #F3F4F6">
           <p style="font-size:13px;font-weight:600;margin-bottom:8px">Скорректировать баллы:</p>
@@ -954,7 +974,7 @@ async def triggers_list(request: Request, emotion: str = "", category: str = "")
       <td>{t.get('category_code') or '—'}</td>
       <td>{'✅' if t.get('insight_text') else '—'}</td>
       <td>+{t.get('points_awarded', 0)}</td>
-      <td style="color:#9CA3AF;font-size:12px">{t['created_at'][:16]}</td>
+      <td style="color:#9CA3AF;font-size:12px">{fmt_date(t['created_at'])}}</td>
     </tr>""" for t in triggers)
 
     content = f"""
@@ -996,7 +1016,7 @@ async def diary_list(request: Request):
       <td>{e.get('energy_level') or '—'}</td>
       <td style="font-size:12px;color:#6B7280;max-width:200px">{e.get('insight_text') or '—'}</td>
       <td>+{e.get('points_awarded', 0)}</td>
-      <td style="color:#9CA3AF;font-size:12px">{e['created_at'][:16]}</td>
+      <td style="color:#9CA3AF;font-size:12px">{fmt_date(e['created_at'])}}</td>
     </tr>""" for e in entries)
 
     content = f"""
@@ -1136,7 +1156,7 @@ async def broadcasts_page(request: Request):
       </td>
       <td style="color:#10B981"><b>✅ {h['sent_count']}</b></td>
       <td style="color:#EF4444">{('❌ ' + str(h['failed_count'])) if h['failed_count'] else '—'}</td>
-      <td style="color:#9CA3AF;font-size:12px">{h['created_at'][:16]}</td>
+      <td style="color:#9CA3AF;font-size:12px">{fmt_date(h['created_at'])}}</td>
     </tr>""" for h in history)
 
     content = f"""
@@ -1581,7 +1601,7 @@ async def referrals_list(request: Request, user_id: str = ""):
         <tr>
           <td>{r['first_name'] or '—'} {'@' + r['username'] if r.get('username') else ''}</td>
           <td style="color:#6B7280;font-size:12px">{r['telegram_id']}</td>
-          <td style="color:#6B7280;font-size:12px">{r['registered_at'][:16]}</td>
+          <td style="color:#6B7280;font-size:12px">{fmt_date(r['registered_at'])}}</td>
         </tr>""" for r in referrals)
         
         content = f"""
@@ -1620,7 +1640,7 @@ async def referrals_list(request: Request, user_id: str = ""):
           <td style="font-family:monospace;background:#F3F4F6;padding:4px 8px;border-radius:4px">{s['referral_code']}</td>
           <td><b style="color:{'#10B981' if s['referrals_count'] > 0 else '#6B7280'}">{s['referrals_count']}</b></td>
           <td>{s['points_balance']}</td>
-          <td style="color:#6B7280;font-size:12px">{s['created_at'][:10]}</td>
+          <td style="color:#6B7280;font-size:12px">{fmt_date(s['created_at'], short=True)}}</td>
           <td>
             <a href="/referrals?user_id={s['id']}" class="btn btn-blue" style="padding:4px 10px;font-size:12px">👥 Смотреть</a>
           </td>
