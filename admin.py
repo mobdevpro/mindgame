@@ -607,28 +607,19 @@ async def dashboard(request: Request):
     }
 
     stats_html = f"""
-    <div class="stats">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:20px">
       <div class="stat"><div class="stat-value">{total_users['c']}</div><div class="stat-label">Пользователей</div></div>
       <div class="stat"><div class="stat-value">{active_today['c']}</div><div class="stat-label">Активных сегодня</div></div>
       <div class="stat"><div class="stat-value">{subscribed['c']}</div><div class="stat-label">Подписано</div></div>
       <div class="stat"><div class="stat-value">{referrals_total['c']}</div><div class="stat-label">Рефералов</div></div>
-    </div>
-    
-    <div class="stats">
       <div class="stat"><div class="stat-value">{triggers_total['c']}</div><div class="stat-label">Триггеров всего</div></div>
       <div class="stat"><div class="stat-value">{triggers_today['c']}</div><div class="stat-label">Триггеров сегодня</div></div>
       <div class="stat"><div class="stat-value">{triggers_week['c']}</div><div class="stat-label">Триггеров за неделю</div></div>
       <div class="stat"><div class="stat-value">{diary_total['c']}</div><div class="stat-label">Записей дневника</div></div>
-    </div>
-    
-    <div class="stats">
       <div class="stat"><div class="stat-value">{tasks_total['c']}</div><div class="stat-label">Задач всего</div></div>
       <div class="stat"><div class="stat-value">{tasks_new['c']}</div><div class="stat-label">Новых задач</div></div>
       <div class="stat"><div class="stat-value">{tasks_done['c']}</div><div class="stat-label">Выполнено</div></div>
       <div class="stat"><div class="stat-value">{achievements_total['c']}</div><div class="stat-label">Достижений</div></div>
-    </div>
-    
-    <div class="stats">
       <div class="stat"><div class="stat-value">{points_total['c']}</div><div class="stat-label">Баллов у пользователей</div></div>
       <div class="stat"><div class="stat-value">{points_awarded['c']}</div><div class="stat-label">Баллов начислено</div></div>
       <div class="stat"><div class="stat-value">{messages_active['c']}</div><div class="stat-label">Шаблонов сообщений</div></div>
