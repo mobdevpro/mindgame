@@ -1,5 +1,5 @@
 """
-AI Service — Hugging Face (free) + Anthropic Claude + Groq + Vosk Speech-to-Text
+AI Service — Google Gemini (free) + Hugging Face + Groq + Anthropic Claude + Vosk
 """
 import os
 import json
@@ -8,7 +8,19 @@ import subprocess
 import anthropic
 from config import ANTHROPIC_API_KEY
 
-# Hugging Face Inference API (бесплатно)
+# Google Gemini API (бесплатно, 1500 запросов/день)
+try:
+    import google.generativeai as genai
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+    else:
+        gemini_model = None
+except ImportError:
+    gemini_model = None
+
+# Hugging Face Inference API (бесплатно, 30K токенов/мес)
 try:
     from huggingface_hub import InferenceClient
     HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "")
@@ -16,7 +28,7 @@ try:
 except ImportError:
     hf_client = None
 
-# Groq Cloud (бесплатная альтернатива)
+# Groq Cloud (бесплатно, без лимита)
 try:
     from groq import Groq
     GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
@@ -67,7 +79,15 @@ CATEGORY_LABELS = {
 async def analyze_trigger(text: str) -> dict:
     """Analyze trigger text: detect emotion and category using AI."""
     
-    # 1. Пробуем Hugging Face (бесплатно, 30K токенов/мес)
+    # 1. Google Gemini (бесплатно, 1500 запросов/день, лучшее качество)
+    if gemini_model:
+        try:
+            return await _analyze_with_gemini(text)
+        except Exception as e:
+            import logging
+            logging.warning(f"Gemini failed: {e}")
+    
+    # 2. Hugging Face (бесплатно, 30K токенов/мес)
     if hf_client:
         try:
             return await _analyze_with_huggingface(text)
@@ -75,15 +95,15 @@ async def analyze_trigger(text: str) -> dict:
             import logging
             logging.warning(f"Hugging Face failed: {e}")
     
-    # 2. Пробуем Groq (бесплатно, без лимита)
+    # 3. Groq (бесплатно, без лимита, очень быстро)
     if groq_client:
         try:
             return await _analyze_with_groq(text)
         except Exception as e:
             import logging
-            logging.warning(f"Groq failed: {e}, falling back to Claude")
+            logging.warning(f"Groq failed: {e}")
     
-    # 3. Если нет Groq или ошибка — пробуем Claude (платно)
+    # 4. Claude (платно, лучшее качество)
     if ANTHROPIC_API_KEY and ANTHROPIC_API_KEY != "your_anthropic_api_key_here":
         try:
             return await _analyze_with_claude(text)
@@ -91,34 +111,64 @@ async def analyze_trigger(text: str) -> dict:
             import logging
             logging.warning(f"Claude failed: {e}")
     
-    # 4. Если ничего не работает — возвращаем дефолт
+    # 5. Дефолт если ничего не работает
     return {"emotion": "other", "category": "other", "brief_response": "Спасибо, что зафиксировал это."}
+
+
+async def _analyze_with_gemini(text: str) -> dict:
+    """Анализ через Google Gemini (бесплатно, 1500 запросов/день)."""
+    prompt = f"""Analyze this emotional trigger:
+
+"{text}"
+
+Choose ONE emotion: anger, irritation, sadness, fear, anxiety, shame, resentment, numbness, other
+Choose ONE category: relationships, work, self_image, boundaries, recognition, control, abandonment, health, money, other
+
+Reply ONLY with valid JSON (no markdown, no code blocks):
+{{"emotion": "code", "category": "code", "brief_response": "1-2 sentences in Russian, empathetic observation"}}"""
+
+    response = gemini_model.generate_content(prompt)
+    result = json.loads(response.text.strip())
+    return result
 
 
 async def _analyze_with_huggingface(text: str) -> dict:
     """Анализ через Hugging Face Inference API (бесплатно)."""
-    prompt = f"""Проанализируй этот триггер:
+    prompt = f"""Analyze this trigger: "{text}"
 
-"{text}"
+Choose ONE emotion: anger, irritation, sadness, fear, anxiety, shame, resentment, numbness, other
+Choose ONE category: relationships, work, self_image, boundaries, recognition, control, abandonment, health, money, other
 
-Выбери ОДНУ эмоцию: anger, irritation, sadness, fear, anxiety, shame, resentment, numbness, other
-Выбери ОДНУ категорию: relationships, work, self_image, boundaries, recognition, control, abandonment, health, money, other
+Reply ONLY with valid JSON:
+{{"emotion": "code", "category": "code", "brief_response": "1-2 sentences in Russian"}}"""
 
-Ответь ТОЛЬКО JSON:
-{{
-  "emotion": "<код>",
-  "category": "<код>",
-  "brief_response": "<1-2 предложения на русском>"
-}}"""
-
-    response = hf_client.chat.completions.create(
-        model="mistralai/Mistral-7B-Instruct-v0.3",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=200,
-        temperature=0.3
-    )
-    result = json.loads(response.choices[0].message.content.strip())
-    return result
+    # Пробуем несколько моделей
+    models_to_try = [
+        'Qwen/Qwen2.5-7B-Instruct',
+        'meta-llama/Llama-3.2-3B-Instruct',
+        'mistralai/Mistral-7B-Instruct-v0.3',
+    ]
+    
+    for model in models_to_try:
+        try:
+            response = hf_client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=200,
+                temperature=0.3
+            )
+            content = response.choices[0].message.content.strip()
+            # Извлекаем JSON из ответа
+            import re
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+                return result
+        except Exception:
+            continue
+    
+    # Если все модели не сработали
+    raise Exception("All Hugging Face models failed")
 
 
 async def _analyze_with_groq(text: str) -> dict:
