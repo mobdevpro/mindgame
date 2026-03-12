@@ -679,7 +679,7 @@ async def dashboard(request: Request):
       <tbody>{emotion_rows}</tbody></table>
     </div>
     
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:20px">
       <div class="card">
         <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">👥 Новые пользователи</h3>
         <table><thead><tr><th>Имя</th><th>Уровень</th><th>Баллы</th><th>Серия</th><th>Дата</th></tr></thead>
