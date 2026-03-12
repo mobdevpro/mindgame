@@ -975,10 +975,19 @@ async def triggers_list(request: Request, emotion: str = "", category: str = "")
       <td>{'✅' if t.get('insight_text') else '—'}</td>
       <td>+{t.get('points_awarded', 0)}</td>
       <td style="color:#9CA3AF;font-size:12px">{fmt_date(t['created_at'])}</td>
+      <td>
+        <a href="/triggers/delete/{t['id']}" class="btn btn-red" style="padding:4px 8px;font-size:11px" onclick="return confirm('Удалить триггер #{t['id']}?')">🗑</a>
+      </td>
     </tr>""" for t in triggers)
+
+    # Сообщение об успешном удалении
+    deleted_msg = ""
+    if request.query_params.get("deleted") == "1":
+        deleted_msg = '<div style="background:#D1FAE5;border:1px solid #10B981;color:#065F46;padding:12px;border-radius:8px;margin-bottom:16px;text-align:center">✅ Триггер удалён</div>'
 
     content = f"""
     <div class="card">
+      {deleted_msg}
       <form method="get" style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
         <label style="font-size:13px;color:#6B7280">Эмоция:</label>
         <select name="emotion"><option value="">Все</option>{emotion_opts}</select>
@@ -1714,3 +1723,70 @@ if __name__ == "__main__":
     print("")
     
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="warning")
+
+
+# ─── Delete Trigger ───────────────────────────────────────────────────────────
+
+@app.get("/triggers/delete/{trigger_id}")
+async def trigger_delete_confirm(request: Request, trigger_id: int):
+    """Страница подтверждения удаления триггера."""
+    trigger = await db_fetchone("SELECT * FROM triggers WHERE id = ?", (trigger_id,))
+    if not trigger:
+        raise HTTPException(404, "Триггер не найден")
+    
+    user = await db_fetchone("SELECT first_name, telegram_id FROM users WHERE id = ?", (trigger["user_id"],))
+    
+    content = f"""
+    <div style="max-width:600px">
+      <a href="/triggers" style="color:#6B7280;font-size:14px;margin-bottom:16px;display:block">← Назад к триггерам</a>
+      
+      <div class="card" style="border:2px solid #EF4444">
+        <div style="font-size:48px;text-align:center;margin-bottom:16px">⚠️</div>
+        <h3 style="font-size:20px;font-weight:700;color:#EF4444;text-align:center;margin-bottom:24px">
+          Удалить триггер?
+        </h3>
+        
+        <div style="background:#F9FAFB;padding:16px;border-radius:12px;margin-bottom:24px">
+          <p style="font-size:14px;color:#6B7280;margin-bottom:12px"><b>Пользователь:</b> {user['first_name']} (@{user['telegram_id']})</p>
+          <p style="font-size:14px;color:#6B7280;margin-bottom:12px"><b>Текст:</b></p>
+          <p style="background:white;padding:12px;border-radius:8px;font-size:15px;line-height:1.5">{trigger['raw_text']}</p>
+          <p style="font-size:14px;color:#6B7280;margin:12px 0 0 0"><b>Эмоция:</b> {trigger.get('emotion_code', '—')}</p>
+          <p style="font-size:14px;color:#6B7280;margin:12px 0 0 0"><b>Категория:</b> {trigger.get('category_code', '—')}</p>
+          <p style="font-size:14px;color:#6B7280;margin:12px 0 0 0"><b>Дата:</b> {trigger['created_at'][:16]}</p>
+        </div>
+        
+        <div style="background:#FEF2F2;border:1px solid #FECACA;padding:16px;border-radius:12px;margin-bottom:24px">
+          <p style="color:#DC2626;font-size:14px;font-weight:600;margin-bottom:8px">⚠️ Внимание!</p>
+          <p style="color:#DC2626;font-size:13px;line-height:1.5">
+            Это действие нельзя отменить. Триггер будет удалён безвозвратно вместе со всеми связанными данными.
+          </p>
+        </div>
+        
+        <div style="display:flex;gap:12px;justify-content:center">
+          <form method="post" action="/triggers/delete/{trigger_id}/confirm" style="display:inline">
+            <button type="submit" class="btn btn-red" style="padding:12px 32px;font-size:15px">
+              🗑 Да, удалить
+            </button>
+          </form>
+          <a href="/triggers" class="btn btn-gray" style="background:#F3F4F6;color:#374151;padding:12px 32px;font-size:15px;text-decoration:none">
+            ❌ Отмена
+          </a>
+        </div>
+      </div>
+    </div>"""
+    
+    return page("Удалить триггер", content, "triggers")
+
+
+@app.post("/triggers/delete/{trigger_id}/confirm")
+async def trigger_delete_confirm_post(request: Request, trigger_id: int):
+    """Подтверждение удаления триггера."""
+    trigger = await db_fetchone("SELECT * FROM triggers WHERE id = ?", (trigger_id,))
+    if not trigger:
+        raise HTTPException(404, "Триггер не найден")
+    
+    # Удаляем триггер
+    await db_execute("DELETE FROM triggers WHERE id = ?", (trigger_id,))
+    
+    # Перенаправляем с сообщением об успехе
+    return RedirectResponse("/triggers?deleted=1", status_code=303)
