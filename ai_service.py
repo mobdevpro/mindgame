@@ -149,21 +149,12 @@ Reply ONLY with valid JSON (no markdown, no code blocks):
 async def _analyze_with_huggingface(text: str) -> dict:
     """Анализ через Hugging Face Inference API (бесплатно)."""
     
-    # Улучшенный промпт с примерами
-    prompt = f'''Analyze this emotional trigger: "{text}"
+    # Промпт только для категории
+    prompt = f'''Analyze this trigger and choose ONE category ONLY:
 
-You MUST choose ONE emotion from this list ONLY:
-- anger (злость, гнев, ярость, бесит)
-- irritation (раздражение, недовольство)
-- sadness (грусть, печаль, тоска)
-- fear (страх, испуг)
-- anxiety (тревога, беспокойство, нервное напряжение)
-- shame (стыд, вина, неловкость)
-- resentment (обида, разочарование)
-- numbness (онемение, пустота)
-- other (другое)
+Trigger: "{text}"
 
-You MUST choose ONE category from this list ONLY:
+Categories (choose ONE):
 - work (работа, карьера, начальник, коллеги, дедлайн)
 - relationships (отношения, жена, муж, семья, друзья)
 - self_image (образ себя, самооценка, сравнение)
@@ -175,8 +166,8 @@ You MUST choose ONE category from this list ONLY:
 - money (финансы, деньги, покупки)
 - other (другое)
 
-Reply ONLY with valid JSON, no other text:
-{{"emotion": "code", "category": "code", "brief_response": "1 sentence in Russian"}}'''
+Reply ONLY with the category code, no JSON, no other text.
+Example answer: work'''
 
     # Пробуем несколько моделей
     models_to_try = [
@@ -190,18 +181,12 @@ Reply ONLY with valid JSON, no other text:
             response = hf_client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=250,
+                max_tokens=20,
                 temperature=0.3
             )
-            content = response.choices[0].message.content.strip()
-            # Извлекаем JSON из ответа
-            import re
-            json_match = re.search(r'\{.*\}', content, re.DOTALL)
-            if json_match:
-                result = json.loads(json_match.group())
-                # Проверяем что эмоция и категория валидны
-                if result.get('emotion') and result.get('category'):
-                    return result
+            category = response.choices[0].message.content.strip().lower()
+            # Возвращаем только категорию
+            return {"category": category}
         except Exception:
             continue
     

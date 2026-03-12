@@ -152,42 +152,37 @@ async def handle_voice_trigger(message: Message, state: FSMContext):
 async def process_trigger_text(message: Message, text: str, state: FSMContext,
                                audio_file_id: str = None, audio_duration: int = None):
     """Общая функция для текстовых и голосовых триггеров."""
-    
-    # AI analysis
-    analysis = await ai.analyze_trigger(text)
-    emotion_code = analysis.get("emotion", "other")
-    category_code = analysis.get("category", "other")
-    ai_response = analysis.get("brief_response", "")
-    
-    # Save draft trigger state
+
+    # AI analysis - только категория
+    category_code = "other"
+    try:
+        analysis = await ai.analyze_trigger(text)
+        if analysis.get("category"):
+            category_code = analysis["category"]
+    except Exception:
+        pass  # Если AI не сработал, используем other
+
+    # Сохраняем данные
     await state.update_data(
         raw_text=text,
-        emotion_code=emotion_code,
         category_code=category_code,
-        ai_response=ai_response,
         audio_file_id=audio_file_id,
         audio_duration=audio_duration
     )
-    
-    # Build response
-    emotion_label = ai.EMOTION_LABELS.get(emotion_code, "💭 Другое")
+
+    # Показываем пользователю
     category_label = ai.CATEGORY_LABELS.get(category_code, "💭 Другое")
-    
+
     # Voice badge
     voice_badge = "🎤 " if audio_file_id else ""
-    
+
     resp = (
-        f"{voice_badge}✅ <b>Триггер зафиксирован.</b>\n"
-        f"Ты уже не внутри автопилота – ты наблюдаешь.\n\n"
+        f"{voice_badge}✅ <b>Триггер записан.</b>\n\n"
+        f"📝 Текст: <i>«{text[:100]}»</i>\n\n"
+        f"🏷 Категория: {category_label}\n\n"
+        f"💭 Выбери эмоцию:"
     )
-    if ai_response:
-        resp += f"<i>{ai_response}</i>\n\n"
-    resp += (
-        f"🏷 Категория: {category_label}\n"
-        f"💭 Эмоция: {emotion_label}\n\n"
-        f"Выбери эмоцию точнее или подтверди:"
-    )
-    
+
     await message.answer(resp, parse_mode="HTML", reply_markup=kb.emotion_keyboard())
     await state.set_state(TriggerStates.waiting_emotion)
 
