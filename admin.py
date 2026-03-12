@@ -688,7 +688,7 @@ async def dashboard(request: Request):
       <tbody>{emotion_rows}</tbody></table>
     </div>
     
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(max(350px,calc((100% - 100px)/6)),1fr));gap:20px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(max(300px,calc((100% - 100px)/6)),1fr));gap:20px">
       <div class="card">
         <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">👥 Новые пользователи</h3>
         <table><thead><tr><th>Имя</th><th>Уровень</th><th>Баллы</th><th>Серия</th><th>Дата</th></tr></thead>
@@ -715,6 +715,42 @@ async def dashboard(request: Request):
         <table><thead><tr><th>Задача</th><th>Пользователь</th><th>Статус</th><th>Очки</th><th>Время</th></tr></thead>
         <tbody>{task_rows}</tbody></table>
         <div style="margin-top:12px"><a href="/tasks">Все задачи →</a></div>
+      </div>
+      
+      <div class="card">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">🏆 Последние достижения</h3>
+        <table><thead><tr><th>Достижение</th><th>Пользователь</th><th>Дата</th></tr></thead>
+        <tbody>{"".join(f"""
+        <tr>
+          <td>🏆 {a.get('title', '—')}</td>
+          <td><a href="/users/{a['telegram_id']}">{a['first_name']}</a></td>
+          <td style="color:#9CA3AF;font-size:12px">{a['awarded_at'][:10]}</td>
+        </tr>""" for a in await db_fetchall("""
+            SELECT ua.awarded_at, a.title, a.icon, u.first_name, u.telegram_id
+            FROM user_achievements ua
+            JOIN achievements a ON ua.achievement_id = a.id
+            JOIN users u ON ua.user_id = u.id
+            ORDER BY ua.awarded_at DESC LIMIT 5
+        """))}</tbody></table>
+        <div style="margin-top:12px"><a href="/achievements">Все достижения →</a></div>
+      </div>
+      
+      <div class="card">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">👥 Топ рефералов</h3>
+        <table><thead><tr><th>Имя</th><th>Код</th><th>Приведено</th></tr></thead>
+        <tbody>{"".join(f"""
+        <tr>
+          <td><a href="/users/{r['telegram_id']}">{r['first_name']}</a></td>
+          <td style="font-family:monospace;font-size:12px">{r['referral_code']}</td>
+          <td><b>{r['referrals_count']}</b></td>
+        </tr>""" for r in await db_fetchall("""
+            SELECT u.first_name, u.telegram_id, u.referral_code,
+                   (SELECT COUNT(*) FROM users r WHERE r.referred_by_user_id = u.id) as referrals_count
+            FROM users u
+            WHERE referrals_count > 0
+            ORDER BY referrals_count DESC LIMIT 5
+        """))}</tbody></table>
+        <div style="margin-top:12px"><a href="/referrals">Все рефералы →</a></div>
       </div>
     </div>"""
 
