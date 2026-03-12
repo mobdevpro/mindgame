@@ -1,5 +1,5 @@
 """
-AI Service — Google Gemini (free) + Hugging Face + Groq + Anthropic Claude + Vosk
+AI Service — Grok (xAI) + Hugging Face + Groq + Google Gemini + Anthropic Claude + Vosk
 """
 import os
 import json
@@ -7,6 +7,20 @@ import wave
 import subprocess
 import anthropic
 from config import ANTHROPIC_API_KEY
+
+# Grok API (xAI, бесплатно в бете)
+try:
+    from openai import OpenAI
+    GROK_API_KEY = os.getenv("GROK_API_KEY", "")
+    if GROK_API_KEY:
+        grok_client = OpenAI(
+            api_key=GROK_API_KEY,
+            base_url="https://api.x.ai/v1"
+        )
+    else:
+        grok_client = None
+except ImportError:
+    grok_client = None
 
 # Google Gemini API (бесплатно, 1500 запросов/день)
 try:
@@ -134,13 +148,35 @@ Reply ONLY with valid JSON (no markdown, no code blocks):
 
 async def _analyze_with_huggingface(text: str) -> dict:
     """Анализ через Hugging Face Inference API (бесплатно)."""
-    prompt = f"""Analyze this trigger: "{text}"
+    
+    # Улучшенный промпт с примерами
+    prompt = f'''Analyze this emotional trigger: "{text}"
 
-Choose ONE emotion: anger, irritation, sadness, fear, anxiety, shame, resentment, numbness, other
-Choose ONE category: relationships, work, self_image, boundaries, recognition, control, abandonment, health, money, other
+You MUST choose ONE emotion from this list ONLY:
+- anger (злость, гнев, ярость, бесит)
+- irritation (раздражение, недовольство)
+- sadness (грусть, печаль, тоска)
+- fear (страх, испуг)
+- anxiety (тревога, беспокойство, нервное напряжение)
+- shame (стыд, вина, неловкость)
+- resentment (обида, разочарование)
+- numbness (онемение, пустота)
+- other (другое)
 
-Reply ONLY with valid JSON:
-{{"emotion": "code", "category": "code", "brief_response": "1-2 sentences in Russian"}}"""
+You MUST choose ONE category from this list ONLY:
+- work (работа, карьера, начальник, коллеги, дедлайн)
+- relationships (отношения, жена, муж, семья, друзья)
+- self_image (образ себя, самооценка, сравнение)
+- boundaries (границы, когда их нарушают)
+- recognition (признание, когда не ценят, игнорируют)
+- control (контроль, когда всё идёт не по плану)
+- abandonment (покинутость, одиночество, отвержение)
+- health (здоровье, усталость, физическое состояние)
+- money (финансы, деньги, покупки)
+- other (другое)
+
+Reply ONLY with valid JSON, no other text:
+{{"emotion": "code", "category": "code", "brief_response": "1 sentence in Russian"}}'''
 
     # Пробуем несколько моделей
     models_to_try = [
@@ -154,7 +190,7 @@ Reply ONLY with valid JSON:
             response = hf_client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=200,
+                max_tokens=250,
                 temperature=0.3
             )
             content = response.choices[0].message.content.strip()
@@ -163,7 +199,9 @@ Reply ONLY with valid JSON:
             json_match = re.search(r'\{.*\}', content, re.DOTALL)
             if json_match:
                 result = json.loads(json_match.group())
-                return result
+                # Проверяем что эмоция и категория валидны
+                if result.get('emotion') and result.get('category'):
+                    return result
         except Exception:
             continue
     
