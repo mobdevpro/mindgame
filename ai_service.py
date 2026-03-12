@@ -79,15 +79,7 @@ CATEGORY_LABELS = {
 async def analyze_trigger(text: str) -> dict:
     """Analyze trigger text: detect emotion and category using AI."""
     
-    # 1. Google Gemini (бесплатно, 1500 запросов/день, лучшее качество)
-    if gemini_model:
-        try:
-            return await _analyze_with_gemini(text)
-        except Exception as e:
-            import logging
-            logging.warning(f"Gemini failed: {e}")
-    
-    # 2. Hugging Face (бесплатно, 30K токенов/мес)
+    # 1. Hugging Face (бесплатно, 30K токенов/мес)
     if hf_client:
         try:
             return await _analyze_with_huggingface(text)
@@ -95,13 +87,21 @@ async def analyze_trigger(text: str) -> dict:
             import logging
             logging.warning(f"Hugging Face failed: {e}")
     
-    # 3. Groq (бесплатно, без лимита, очень быстро)
+    # 2. Groq (бесплатно, без лимита, очень быстро)
     if groq_client:
         try:
             return await _analyze_with_groq(text)
         except Exception as e:
             import logging
             logging.warning(f"Groq failed: {e}")
+    
+    # 3. Google Gemini (бесплатно, 1500/день) - может не работать в некоторых регионах
+    if gemini_model:
+        try:
+            return await _analyze_with_gemini(text)
+        except Exception as e:
+            import logging
+            logging.warning(f"Gemini failed: {e}")
     
     # 4. Claude (платно, лучшее качество)
     if ANTHROPIC_API_KEY and ANTHROPIC_API_KEY != "your_anthropic_api_key_here":
