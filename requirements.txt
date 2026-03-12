@@ -5,4 +5,5 @@ python-dotenv==1.0.1
 apscheduler==3.10.4
 vosk>=0.3.45
 groq>=0.4.0
+huggingface_hub>=0.20.0
 
