@@ -449,5 +449,148 @@ def convert_ogg_to_wav(ogg_path: str) -> str:
         "-y",                # перезаписать если есть
         wav_path
     ], check=True, capture_output=True)
-    
+
     return wav_path
+
+
+# ═══════════════════════════════════════════════════════════════
+# PATTERN ANALYSIS (Анализ паттернов триггеров)
+# ═══════════════════════════════════════════════════════════════
+
+PATTERN_ANALYSIS_PROMPT = """
+Проанализируй триггеры пользователя и найди скрытые связи между ними.
+
+Триггеры пользователя (последние {count}):
+{triggers_json}
+
+Статистика:
+• Всего триггеров: {total}
+• Дней активности: {days}
+• Top эмоция: {top_emotion}
+• Top категория: {top_category}
+
+ЗАДАЧА:
+1. Найди 2-4 повторяющиеся темы/паттерна в триггерах
+2. Выстрой их в цепочку от поверхностных (уровень 1) к глубинным (уровень 3)
+3. Для каждого паттерна укажи:
+   - Краткое название темы (2-4 слова)
+   - Количество триггеров которые относятся
+   - ID этих триггеров
+   - 1-2 примера текста
+4. Сформулируй возможное глубинное убеждение (core belief)
+5. Дай 1 конкретную рекомендацию для работы с этим
+
+Важно:
+- Ищи связи между разными категориями (работа, отношения, самооценка)
+- Обращай внимание на повторяющиеся эмоции
+- Выстраивай логическую цепочку: поверхностное → среднее → глубинное
+
+Ответь ТОЛЬКО в формате JSON (без markdown, без кода):
+{{
+  "pattern_chain": [
+    {{
+      "level": 1,
+      "theme": "краткое название паттерна",
+      "trigger_count": 5,
+      "trigger_ids": [1, 3, 7],
+      "examples": ["пример текста 1", "пример текста 2"]
+    }},
+    {{
+      "level": 2,
+      "theme": "более глубокий паттерн",
+      "trigger_count": 3,
+      "trigger_ids": [2, 5],
+      "examples": ["пример текста"]
+    }}
+  ],
+  "core_belief": "формулировка глубинного убеждения",
+  "confidence": 0.85,
+  "recommendation": "конкретный совет что делать"
+}}
+"""
+
+
+async def analyze_patterns(triggers: list[dict], stats: dict) -> dict:
+    """
+    AI-анализ паттернов триггеров.
+    
+    Args:
+        triggers: Список триггеров [{'id', 'raw_text', 'emotion_code', 'category_code', ...}]
+        stats: Статистика {'total': int, 'days': int, 'top_emotion': str, 'top_category': str}
+    
+    Returns:
+        dict с паттернами или дефолтное значение при ошибке
+    """
+    # Подготовка данных для AI
+    triggers_json = json.dumps([
+        {
+            "id": t["id"],
+            "text": t["raw_text"][:200],  # Обрезаем длинные тексты
+            "emotion": t.get("emotion_code", "unknown"),
+            "category": t.get("category_code", "unknown")
+        }
+        for t in triggers[:30]  # Берём максимум 30 для анализа
+    ], ensure_ascii=False)
+    
+    prompt = PATTERN_ANALYSIS_PROMPT.format(
+        count=len(triggers),
+        triggers_json=triggers_json,
+        total=stats.get("total", 0),
+        days=stats.get("days", 1),
+        top_emotion=stats.get("top_emotion", "unknown"),
+        top_category=stats.get("top_category", "unknown")
+    )
+    
+    # Пробуем разные AI сервисы по приоритету
+    
+    # 1. Claude (лучшее качество для анализа)
+    if ANTHROPIC_API_KEY and ANTHROPIC_API_KEY != "your_anthropic_api_key_here":
+        try:
+            client = get_client()
+            message = client.messages.create(
+                model="claude-3-5-haiku-20241022",
+                max_tokens=800,
+                messages=[{
+                    "role": "user",
+                    "content": prompt
+                }]
+            )
+            result = json.loads(message.content[0].text.strip())
+            return result
+        except Exception as e:
+            import logging
+            logging.warning(f"Claude pattern analysis failed: {e}")
+    
+    # 2. Groq (быстро, бесплатно)
+    if groq_client:
+        try:
+            completion = groq_client.chat.completions.create(
+                model="llama-3.2-3b-instant",
+                messages=[{
+                    "role": "user",
+                    "content": prompt
+                }],
+                temperature=0.3,
+                max_tokens=800
+            )
+            result = json.loads(completion.choices[0].message.content.strip())
+            return result
+        except Exception as e:
+            import logging
+            logging.warning(f"Groq pattern analysis failed: {e}")
+    
+    # 3. Дефолтный результат если AI не сработал
+    return {
+        "pattern_chain": [
+            {
+                "level": 1,
+                "theme": "Нужно больше данных для анализа",
+                "trigger_count": len(triggers),
+                "trigger_ids": [t["id"] for t in triggers[:5]],
+                "examples": ["Запишите ещё несколько триггеров для лучшего анализа"]
+            }
+        ],
+        "core_belief": "Пока нет данных для формулировки",
+        "confidence": 0.0,
+        "recommendation": "Продолжайте записывать триггеры — чем больше данных, тем точнее анализ"
+    }

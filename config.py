@@ -49,6 +49,7 @@ POINTS = {
     "diary_full": 10,
     "diary_streak_7": 20,
     "referral": 50,
+    "pattern_processed": 10,  # Баллы за проработку паттерна
 }
 
 _POINTS_CACHE = None
@@ -103,6 +104,7 @@ MENU_DEFAULTS = {
     "show_tasks": True,
     "show_progress": True,
     "show_checkin": True,
+    "show_patterns": True,  # 🧩 Новая кнопка
     "show_shop": True,
     "show_stop": True,
     "show_settings": True,

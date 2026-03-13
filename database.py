@@ -1,4 +1,5 @@
 import aiosqlite
+import json
 from config import DB_PATH
 
 
@@ -919,3 +920,105 @@ async def save_trigger_reflection(trigger_id: int, question_key: str, answer_tex
         reflection_id = cursor.lastrowid
         await db.commit()
         return reflection_id
+
+
+# ─── Pattern Analysis ─────────────────────────────────────────────────────────
+
+async def save_pattern_analysis(
+    user_id: int,
+    pattern_chain_json: str,
+    core_belief: str,
+    confidence: float,
+    recommendation: str
+) -> int:
+    """Сохранить результат AI-анализа паттернов."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("""
+            INSERT INTO pattern_analyses
+            (user_id, pattern_chain_json, core_belief, confidence, recommendation)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user_id, pattern_chain_json, core_belief, confidence, recommendation))
+        analysis_id = cursor.lastrowid
+        await db.commit()
+        return analysis_id
+
+
+async def get_last_pattern_analysis(user_id: int) -> dict | None:
+    """Получить последний анализ паттернов пользователя."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT * FROM pattern_analyses
+            WHERE user_id = ?
+            ORDER BY analysis_date DESC
+            LIMIT 1
+        """, (user_id,)) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+
+async def mark_pattern_processed(analysis_id: int) -> bool:
+    """Отметить анализ как проработанный."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            UPDATE pattern_analyses
+            SET is_processed = 1, processed_at = datetime('now')
+            WHERE id = ?
+        """, (analysis_id,))
+        await db.commit()
+        return True
+
+
+async def create_trigger_cluster(
+    user_id: int,
+    cluster_theme: str,
+    cluster_level: int,
+    trigger_ids: list[int]
+) -> int:
+    """Создать кластер триггеров."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("""
+            INSERT INTO trigger_clusters
+            (user_id, cluster_theme, cluster_level, trigger_ids)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, cluster_theme, cluster_level, json.dumps(trigger_ids)))
+        cluster_id = cursor.lastrowid
+        await db.commit()
+        return cluster_id
+
+
+async def get_trigger_clusters(user_id: int) -> list[dict]:
+    """Получить все кластеры триггеров пользователя."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT * FROM trigger_clusters
+            WHERE user_id = ?
+            ORDER BY cluster_level, created_at DESC
+        """, (user_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+
+async def get_triggers_for_pattern_analysis(user_id: int, limit: int = 50) -> list[dict]:
+    """Получить триггеры для анализа паттернов (последние N)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT id, raw_text, emotion_code, category_code, created_at
+            FROM triggers
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """, (user_id, limit)) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+
+async def count_user_triggers(user_id: int) -> int:
+    """Посчитать общее количество триггеров пользователя."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("""
+            SELECT COUNT(*) FROM triggers WHERE user_id = ?
+        """, (user_id,)) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else 0

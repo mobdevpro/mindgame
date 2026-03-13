@@ -40,3 +40,7 @@ class StopStates(StatesGroup):
     step_feeling = State()
     step_intensity = State()
     step_pause = State()
+
+
+class PatternStates(StatesGroup):
+    waiting_process_confirm = State()

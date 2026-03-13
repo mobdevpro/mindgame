@@ -3,6 +3,7 @@ Database migration system — безопасное обновление схем
 Каждая миграция идемпотентна и проверяет существование таблиц перед созданием.
 """
 import aiosqlite
+import json
 from datetime import datetime
 from config import DB_PATH
 
@@ -123,6 +124,7 @@ async def migrate_002_add_menu_settings():
                 ("show_tasks",         "✅ Мои задачи"),
                 ("show_progress",      "📊 Мой прогресс"),
                 ("show_checkin",       "✅ Быстрый чек-ин"),
+                ("show_patterns",      "🧩 Найти паттерны"),
                 ("show_shop",          "🛍 Магазин"),
                 ("show_stop",          "🛑 Стоп"),
                 ("show_settings",      "⚙️ Настройки"),
@@ -390,12 +392,57 @@ async def migrate_004_add_message_templates():
         return True
 
 
+async def migrate_005_add_pattern_analysis():
+    """Миграция: добавить таблицы для AI-анализа паттернов."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Таблица для результатов анализа паттернов
+        async with db.execute("PRAGMA table_info(pattern_analyses)") as cur:
+            if await cur.fetchone():
+                pass  # Таблица уже есть
+            else:
+                await db.execute("""
+                    CREATE TABLE pattern_analyses (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        analysis_date TEXT DEFAULT (datetime('now')),
+                        pattern_chain_json TEXT NOT NULL,
+                        core_belief TEXT,
+                        confidence REAL,
+                        recommendation TEXT,
+                        is_processed INTEGER DEFAULT 0,
+                        processed_at TEXT,
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    )
+                """)
+
+        # Таблица для кластеров триггеров
+        async with db.execute("PRAGMA table_info(trigger_clusters)") as cur:
+            if await cur.fetchone():
+                pass  # Таблица уже есть
+            else:
+                await db.execute("""
+                    CREATE TABLE trigger_clusters (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        cluster_theme TEXT NOT NULL,
+                        cluster_level INTEGER DEFAULT 1,
+                        trigger_ids TEXT NOT NULL,
+                        created_at TEXT DEFAULT (datetime('now')),
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    )
+                """)
+
+        await db.commit()
+        return True
+
+
 # Список всех миграций в порядке применения
 MIGRATIONS = [
     ("001_add_points_config", migrate_001_add_points_config),
     ("002_add_menu_settings", migrate_002_add_menu_settings),
     ("003_add_voice_fields", migrate_003_add_voice_fields),
     ("004_add_message_templates", migrate_004_add_message_templates),
+    ("005_add_pattern_analysis", migrate_005_add_pattern_analysis),
 ]
 
 

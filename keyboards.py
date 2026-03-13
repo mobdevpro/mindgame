@@ -27,12 +27,14 @@ def main_menu() -> ReplyKeyboardMarkup:
     if row2:
         builder.row(*row2)
 
-    # Row 3: Мой прогресс + Быстрый чек-ин (both optional)
+    # Row 3: Мой прогресс + Быстрый чек-ин + Паттерны (optional)
     row3 = []
     if get_menu_setting("show_progress"):
         row3.append(KeyboardButton(text="📊 Мой прогресс"))
     if get_menu_setting("show_checkin"):
         row3.append(KeyboardButton(text="✅ Быстрый чек-ин"))
+    if get_menu_setting("show_patterns"):
+        row3.append(KeyboardButton(text="🧩 Найти паттерны"))
     if row3:
         builder.row(*row3)
 
@@ -261,5 +263,49 @@ def webapp_inline_button() -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(
         text="🎮 Открыть приложение",
         web_app=WebAppInfo(url=WEBAPP_URL)
+    ))
+    return builder.as_markup()
+
+
+# ─── Pattern Analysis Keyboards ───────────────────────────────────────────────
+
+def pattern_result_keyboard(analysis_id: int, is_processed: bool) -> InlineKeyboardMarkup:
+    """Клавиатура для результата анализа паттернов."""
+    builder = InlineKeyboardBuilder()
+    
+    if not is_processed:
+        builder.row(InlineKeyboardButton(
+            text="💡 Проработать это",
+            callback_data=f"process_pattern:{analysis_id}"
+        ))
+    
+    builder.row(InlineKeyboardButton(
+        text="📅 Напомнить через неделю",
+        callback_data="remind_pattern_week"
+    ))
+    
+    builder.row(InlineKeyboardButton(
+        text="🗺 Показать кластеры",
+        callback_data=f"view_clusters:{analysis_id}"
+    ))
+    
+    builder.row(InlineKeyboardButton(
+        text="🏠 В меню",
+        callback_data="go_home"
+    ))
+    
+    return builder.as_markup()
+
+
+def back_to_patterns_keyboard() -> InlineKeyboardMarkup:
+    """Кнопка назад к паттернам."""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(
+        text="⬅️ Назад",
+        callback_data="show_patterns"
+    ))
+    builder.row(InlineKeyboardButton(
+        text="🏠 В меню",
+        callback_data="go_home"
     ))
     return builder.as_markup()
