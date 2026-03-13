@@ -884,7 +884,7 @@ async def user_detail(request: Request, telegram_id: int):
           <div>🔥 Серия: {user.get('streak_days', 0)} дн.</div>
           <div>📝 Триггеров: {len(triggers)}</div>
           <div>{'✅ Подписан' if user.get('is_subscribed') else '❌ Не подписан'}</div>
-          <div style="color:#9CA3AF">С {user['created_at'], short=True)}</div>
+          <div style="color:#9CA3AF">С {fmt_date(user['created_at'], short=True)}</div>
         </div>
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid #F3F4F6">
           <p style="font-size:13px;font-weight:600;margin-bottom:8px">Скорректировать баллы:</p>
