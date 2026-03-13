@@ -1763,11 +1763,7 @@ async def trigger_delete_confirm(request: Request, trigger_id: int):
         </div>
         
         <div style="display:flex;gap:12px;justify-content:center">
-          <form method="post" action="/triggers/delete/{trigger_id}/confirm" style="display:inline">
-            <button type="submit" class="btn btn-red" style="padding:12px 32px;font-size:15px">
-              🗑 Да, удалить
-            </button>
-          </form>
+          <a href="/triggers/delete/{trigger_id}/confirm" class="btn btn-red" style="padding:12px 32px;font-size:15px" onclick="return confirm('Удалить?')">🗑 Да, удалить</a>
           <a href="/triggers" class="btn btn-gray" style="background:#F3F4F6;color:#374151;padding:12px 32px;font-size:15px;text-decoration:none">
             ❌ Отмена
           </a>
