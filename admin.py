@@ -142,7 +142,7 @@ def page(title: str, content: str, active: str = "") -> str:
         ("📔 Дневник", "/diary", "diary"),
         ("🏆 Достижения", "/achievements", "achievements"),
         ("📢 Рассылки", "/broadcasts", "broadcasts"),
-        ("💬 Сообщения", "/messages", "messages"),
+        ("💬 Поддержка", "/support", "messages"),
         ("👥 Рефералы", "/referrals", "referrals"),
         ("⭐ Очки", "/points", "points"),
         ("🎛 Меню бота", "/menu", "menu"),
@@ -1699,6 +1699,275 @@ async def referrals_list(request: Request, user_id: str = ""):
         </div>"""
     
     return page("👥 Рефералы", content, "referrals")
+
+
+# ─── Support Messages ─────────────────────────────────────────────────────────
+
+@app.get("/support", response_class=HTMLResponse)
+async def support_messages(
+    request: Request,
+    status: str = "",
+    page: int = 1
+):
+    """Страница сообщений поддержки."""
+    limit = 50
+    
+    # Получаем сообщения
+    messages = await db.get_support_messages_for_admin(status=status if status else None, limit=limit)
+    
+    # Статистика
+    stats = await db.get_support_stats()
+    
+    # Формируем контент
+    stats_html = f"""
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value">{stats.get('total', 0)}</div>
+            <div class="stat-label">Всего</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color:#3B82F6">{stats.get('new_count', 0)}</div>
+            <div class="stat-label">🆕 Новые</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color:#F59E0B">{stats.get('in_progress_count', 0)}</div>
+            <div class="stat-label">⏳ В работе</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color:#10B981">{stats.get('resolved_count', 0)}</div>
+            <div class="stat-label">✅ Решено</div>
+        </div>
+    </div>
+    """
+    
+    # Фильтры
+    filters_html = """
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <a href="/support" class="btn btn-blue">Все</a>
+        <a href="/support?status=new" class="btn btn-green">🆕 Новые</a>
+        <a href="/support?status=in_progress" class="btn" style="background:#F59E0B;color:white">⏳ В работе</a>
+        <a href="/support?status=resolved" class="btn" style="background:#10B981;color:white">✅ Решено</a>
+    </div>
+    """
+    
+    # Таблица сообщений
+    if not messages:
+        messages_html = '<div class="card">Нет сообщений</div>'
+    else:
+        rows = ""
+        for msg in messages:
+            status_badge = {
+                "new": '<span class="badge badge-green">🆕 Новый</span>',
+                "in_progress": '<span class="badge" style="background:#FEF3C7;color:#D97706">⏳ В работе</span>',
+                "resolved": '<span class="badge badge-green">✅ Решено</span>',
+                "closed": '<span class="badge badge-gray">🔒 Закрыто</span>'
+            }.get(msg["status"], f'<span class="badge badge-gray">{msg["status"]}</span>')
+            
+            username = msg.get("username") or f"ID:{msg['telegram_id']}"
+            preview = msg["message_text"][:60] + "..." if len(msg["message_text"]) > 60 else msg["message_text"]
+            created = fmt_date(msg["created_at"], short=True)
+            
+            reply_badge = ""
+            if msg.get("admin_reply"):
+                reply_badge = '<span class="badge badge-green">💬 Есть ответ</span>'
+            
+            assigned = msg.get("assigned_to") or "—"
+            
+            rows += f"""
+            <tr>
+                <td>
+                    <a href="/support/{msg['id']}"><strong>#{msg['id']}</strong></a><br>
+                    <span style="color:#6B7280;font-size:12px">{username}</span>
+                </td>
+                <td style="max-width:400px">
+                    <div class="trigger-text">{preview}</div>
+                </td>
+                <td>{status_badge} {reply_badge}</td>
+                <td>{assigned}</td>
+                <td style="color:#6B7280;font-size:12px">{created}</td>
+                <td>
+                    <a href="/support/{msg['id']}" class="btn btn-blue" style="padding:4px 12px;font-size:12px">Открыть</a>
+                </td>
+            </tr>
+            """
+        
+        messages_html = f"""
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Тикет</th>
+                        <th>Сообщение</th>
+                        <th>Статус</th>
+                        <th>Исполнитель</th>
+                        <th>Дата</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows}
+                </tbody>
+            </table>
+        </div>
+        """
+    
+    content = stats_html + filters_html + messages_html
+    return page("💬 Сообщения поддержки", content, "messages")
+
+
+@app.get("/support/{message_id}", response_class=HTMLResponse)
+async def support_message_detail(request: Request, message_id: int):
+    """Детальная страница сообщения поддержки."""
+    msg = await db.get_support_message(message_id)
+    
+    if not msg:
+        raise HTTPException(status_code=404, detail="Сообщение не найдено")
+    
+    # Получаем историю переписки с этим пользователем
+    history = await db.get_support_messages_by_user(msg["telegram_id"], limit=10)
+    
+    status_select = f"""
+    <select name="status" onchange="this.form.submit()" style="padding:8px 12px;border-radius:8px;border:1px solid #D1D5DB;font-size:14px">
+        <option value="new" {'selected' if msg['status'] == 'new' else ''}>🆕 Новый</option>
+        <option value="in_progress" {'selected' if msg['status'] == 'in_progress' else ''}>⏳ В работе</option>
+        <option value="resolved" {'selected' if msg['status'] == 'resolved' else ''}>✅ Решено</option>
+        <option value="closed" {'selected' if msg['status'] == 'closed' else ''}>🔒 Закрыто</option>
+    </select>
+    """
+    
+    history_html = ""
+    for h in history:
+        if h["id"] == message_id:
+            continue
+        h_date = fmt_date(h["created_at"], short=True)
+        h_preview = h["message_text"][:100] + "..." if len(h["message_text"]) > 100 else h["message_text"]
+        history_html += f"""
+        <div style="padding:12px;background:#F9FAFB;border-radius:8px;margin-bottom:8px">
+            <div style="font-size:12px;color:#6B7280;margin-bottom:4px">#{h['id']} — {h_date}</div>
+            <div style="font-size:14px">{h_preview}</div>
+        </div>
+        """
+    
+    reply_form = f"""
+    <form method="post" action="/support/{message_id}/reply" style="margin-top:20px">
+        <div style="margin-bottom:12px">
+            <label style="display:block;font-size:13px;font-weight:600;color:#6B7280;margin-bottom:8px;text-transform:uppercase">
+                Ответ пользователю
+            </label>
+            <textarea name="reply_text" rows="4" style="width:100%;padding:12px;border:1px solid #D1D5DB;border-radius:8px;font-size:14px;font-family:inherit" placeholder="Напиши ответ..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-blue">💬 Отправить ответ</button>
+    </form>
+    """
+    
+    content = f"""
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+        <div>
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                    <div>
+                        <h3 style="font-size:18px;margin-bottom:4px">Тикет #{msg['id']}</h3>
+                        <div style="font-size:13px;color:#6B7280">
+                            Пользователь: <strong>{msg.get('username') or f"ID:{msg['telegram_id']}"}</strong> |
+                            TG ID: <code>{msg['telegram_id']}</code>
+                        </div>
+                    </div>
+                    <form method="post" action="/support/{message_id}/status" style="display:flex;gap:8px">
+                        {status_select}
+                    </form>
+                </div>
+                
+                <div style="background:#F3F4F6;padding:16px;border-radius:8px;margin-bottom:16px">
+                    <div style="font-size:12px;color:#6B7280;margin-bottom:8px">Сообщение пользователя:</div>
+                    <div style="font-size:15px;line-height:1.6">{msg['message_text']}</div>
+                </div>
+                
+                {reply_form if msg.get('admin_reply') else ''}
+                
+                {f'<div style="margin-top:16px;padding:16px;background:#ECFDF5;border-radius:8px"><div style="font-size:12px;color:#059669;margin-bottom:8px">✅ Ответ админа:</div><div style="font-size:15px;line-height:1.6">{msg["admin_reply"]}</div><div style="font-size:12px;color:#6B7280;margin-top:8px">Отвечал: {msg.get("assigned_to", "—")} | {fmt_date(msg.get("answered_at", ""), short=True)}</div></div>' if msg.get('admin_reply') else ''}
+            </div>
+            
+            <div class="card" style="margin-top:20px">
+                <h4 style="font-size:14px;margin-bottom:12px">📋 История переписки</h4>
+                {history_html if history_html else '<div style="color:#6B7280;font-size:14px">Нет других обращений</div>'}
+            </div>
+        </div>
+        
+        <div>
+            <div class="card">
+                <h4 style="font-size:14px;margin-bottom:12px">ℹ️ Информация</h4>
+                <div style="font-size:13px;line-height:2">
+                    <div><strong>Статус:</strong> {msg['status']}</div>
+                    <div><strong>Исполнитель:</strong> {msg.get('assigned_to') or 'Не назначен'}</div>
+                    <div><strong>Создано:</strong> {fmt_date(msg['created_at'])}</div>
+                    <div><strong>Обновлено:</strong> {fmt_date(msg['updated_at'])}</div>
+                    {f'<div><strong>Отвечено:</strong> {fmt_date(msg["answered_at"])}</div>' if msg.get('answered_at') else ''}
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top:16px">
+                <h4 style="font-size:14px;margin-bottom:12px">⚡ Действия</h4>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                    <a href="/support/{message_id}/assign" class="btn btn-blue">👤 Назначить на меня</a>
+                    <a href="/support" class="btn" style="background:#6B7280;color:white">← Назад к списку</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    """
+    
+    return page(f"Тикет #{msg['id']}", content, "messages")
+
+
+@app.post("/support/{message_id}/reply")
+async def support_reply(message_id: int, request: Request, reply_text: str = Form(...)):
+    """Отправить ответ пользователю."""
+    # Получаем сообщение
+    msg = await db.get_support_message(message_id)
+    if not msg:
+        raise HTTPException(status_code=404, detail="Сообщение не найдено")
+    
+    # Сохраняем ответ
+    await db.reply_to_support_message(
+        message_id=message_id,
+        admin_reply=reply_text,
+        admin_username="admin"  # TODO: брать из сессии
+    )
+    
+    # Отправляем ответ пользователю в Telegram
+    if BOT_TOKEN:
+        from aiogram import Bot
+        from aiogram.enums import ParseMode
+        bot = Bot(token=BOT_TOKEN, default_bot_properties={"parse_mode": ParseMode.HTML})
+        try:
+            await bot.send_message(
+                msg["telegram_id"],
+                f"💬 <b>Ответ на ваше обращение #{message_id}</b>\n\n"
+                f"{reply_text}\n\n"
+                f"<i>Если есть ещё вопросы — пишите!</i>",
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            import logging
+            logging.warning(f"Failed to send support reply to {msg['telegram_id']}: {e}")
+        finally:
+            await bot.session.close()
+    
+    return RedirectResponse(f"/support/{message_id}", status_code=302)
+
+
+@app.post("/support/{message_id}/status")
+async def support_update_status(message_id: int, request: Request, status: str = Form(...)):
+    """Обновить статус тикета."""
+    await db.update_support_status(message_id, status)
+    return RedirectResponse(f"/support/{message_id}", status_code=302)
+
+
+@app.get("/support/{message_id}/assign")
+async def support_assign(message_id: int, request: Request):
+    """Назначить тикет на текущего админа."""
+    await db.assign_support_message(message_id, "admin")  # TODO: брать из сессии
+    return RedirectResponse(f"/support/{message_id}", status_code=302)
 
 
 # ─── Run ──────────────────────────────────────────────────────────────────────

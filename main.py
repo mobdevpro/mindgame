@@ -10,7 +10,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 import config
 from config import BOT_TOKEN
 from database import init_db
-from handlers import start, triggers, diary, profile, tasks, stop_mode, shop, patterns
+from handlers import start, triggers, diary, profile, tasks, stop_mode, shop, patterns, support
 from scheduler import setup_scheduler
 
 logging.basicConfig(
@@ -53,6 +53,7 @@ async def main():
     dp.include_router(stop_mode.router)
     dp.include_router(shop.router)
     dp.include_router(patterns.router)
+    dp.include_router(support.router)
 
     # Fetch and cache bot username
     me = await bot.get_me()

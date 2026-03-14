@@ -105,6 +105,7 @@ MENU_DEFAULTS = {
     "show_progress": True,
     "show_checkin": True,
     "show_patterns": True,  # 🧩 Новая кнопка
+    "show_support": True,   # 💬 Поддержка
     "show_shop": True,
     "show_stop": True,
     "show_settings": True,

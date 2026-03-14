@@ -125,6 +125,7 @@ async def migrate_002_add_menu_settings():
                 ("show_progress",      "📊 Мой прогресс"),
                 ("show_checkin",       "✅ Быстрый чек-ин"),
                 ("show_patterns",      "🧩 Найти паттерны"),
+                ("show_support",       "💬 Написать в поддержку"),
                 ("show_shop",          "🛍 Магазин"),
                 ("show_stop",          "🛑 Стоп"),
                 ("show_settings",      "⚙️ Настройки"),
@@ -436,6 +437,46 @@ async def migrate_005_add_pattern_analysis():
         return True
 
 
+async def migrate_006_add_support_messages():
+    """Миграция: добавить таблицу для сообщений в поддержку."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("PRAGMA table_info(support_messages)") as cur:
+            if await cur.fetchone():
+                return True  # Таблица уже существует
+
+        await db.execute("""
+            CREATE TABLE support_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                telegram_id INTEGER NOT NULL,
+                username TEXT,
+                message_text TEXT NOT NULL,
+                message_type TEXT DEFAULT 'user',
+                admin_reply TEXT,
+                status TEXT DEFAULT 'new',
+                assigned_to TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now')),
+                answered_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """)
+
+        # Индексы для быстрого поиска
+        await db.execute("""
+            CREATE INDEX IF NOT EXISTS idx_support_status ON support_messages(status)
+        """)
+        await db.execute("""
+            CREATE INDEX IF NOT EXISTS idx_support_telegram ON support_messages(telegram_id)
+        """)
+        await db.execute("""
+            CREATE INDEX IF NOT EXISTS idx_support_created ON support_messages(created_at DESC)
+        """)
+
+        await db.commit()
+        return True
+
+
 # Список всех миграций в порядке применения
 MIGRATIONS = [
     ("001_add_points_config", migrate_001_add_points_config),
@@ -443,6 +484,7 @@ MIGRATIONS = [
     ("003_add_voice_fields", migrate_003_add_voice_fields),
     ("004_add_message_templates", migrate_004_add_message_templates),
     ("005_add_pattern_analysis", migrate_005_add_pattern_analysis),
+    ("006_add_support_messages", migrate_006_add_support_messages),
 ]
 
 

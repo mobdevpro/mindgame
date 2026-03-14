@@ -35,6 +35,8 @@ def main_menu() -> ReplyKeyboardMarkup:
         row3.append(KeyboardButton(text="✅ Быстрый чек-ин"))
     if get_menu_setting("show_patterns"):
         row3.append(KeyboardButton(text="🧩 Найти паттерны"))
+    if get_menu_setting("show_support"):
+        row3.append(KeyboardButton(text="💬 Написать в поддержку"))
     if row3:
         builder.row(*row3)
 
@@ -307,5 +309,17 @@ def back_to_patterns_keyboard() -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(
         text="🏠 В меню",
         callback_data="go_home"
+    ))
+    return builder.as_markup()
+
+
+# ─── Support Keyboards ────────────────────────────────────────────────────────
+
+def cancel_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура отмены."""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(
+        text="❌ Отмена",
+        callback_data="cancel_support"
     ))
     return builder.as_markup()

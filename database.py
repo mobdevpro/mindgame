@@ -1022,3 +1022,148 @@ async def count_user_triggers(user_id: int) -> int:
         """, (user_id,)) as cursor:
             row = await cursor.fetchone()
             return row[0] if row else 0
+
+
+# ─── Support Messages ─────────────────────────────────────────────────────────
+
+async def create_support_message(
+    user_id: int,
+    telegram_id: int,
+    username: str,
+    message_text: str
+) -> int:
+    """Создать новое сообщение в поддержку."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("""
+            INSERT INTO support_messages (user_id, telegram_id, username, message_text)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, telegram_id, username, message_text))
+        message_id = cursor.lastrowid
+        await db.commit()
+        return message_id
+
+
+async def get_support_messages_by_user(telegram_id: int, limit: int = 20) -> list[dict]:
+    """Получить историю переписки пользователя с поддержкой."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT * FROM support_messages
+            WHERE telegram_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """, (telegram_id, limit)) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+
+async def get_support_messages_for_admin(
+    status: str = None,
+    assigned_to: str = None,
+    limit: int = 50
+) -> list[dict]:
+    """Получить сообщения для админки с фильтрами."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        
+        query = "SELECT * FROM support_messages WHERE 1=1"
+        params = []
+        
+        if status:
+            query += " AND status = ?"
+            params.append(status)
+        
+        if assigned_to:
+            query += " AND assigned_to = ?"
+            params.append(assigned_to)
+        
+        query += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
+        
+        async with db.execute(query, params) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+
+async def get_support_message(message_id: int) -> dict | None:
+    """Получить одно сообщение по ID."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT * FROM support_messages WHERE id = ?
+        """, (message_id,)) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+
+async def reply_to_support_message(
+    message_id: int,
+    admin_reply: str,
+    admin_username: str
+) -> bool:
+    """Ответить на сообщение пользователя."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            UPDATE support_messages
+            SET admin_reply = ?,
+                assigned_to = ?,
+                status = 'in_progress',
+                answered_at = datetime('now'),
+                updated_at = datetime('now')
+            WHERE id = ?
+        """, (admin_reply, admin_username, message_id))
+        await db.commit()
+        return True
+
+
+async def update_support_status(message_id: int, status: str) -> bool:
+    """Обновить статус сообщения."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            UPDATE support_messages
+            SET status = ?, updated_at = datetime('now')
+            WHERE id = ?
+        """, (status, message_id))
+        await db.commit()
+        return True
+
+
+async def assign_support_message(message_id: int, admin_username: str) -> bool:
+    """Назначить сообщение на админа."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            UPDATE support_messages
+            SET assigned_to = ?, status = 'in_progress', updated_at = datetime('now')
+            WHERE id = ?
+        """, (admin_username, message_id))
+        await db.commit()
+        return True
+
+
+async def count_support_messages(status: str = None) -> int:
+    """Посчитать количество сообщений (для статистики)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        query = "SELECT COUNT(*) FROM support_messages WHERE 1=1"
+        params = []
+        
+        if status:
+            query += " AND status = ?"
+            params.append(status)
+        
+        async with db.execute(query, params) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else 0
+
+
+async def get_support_stats() -> dict:
+    """Получить статистику по сообщениям поддержки."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("""
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) as new_count,
+                SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_count,
+                SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved_count,
+                SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as closed_count
+            FROM support_messages
+        """) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else {}

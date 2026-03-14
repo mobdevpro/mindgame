@@ -44,3 +44,8 @@ class StopStates(StatesGroup):
 
 class PatternStates(StatesGroup):
     waiting_process_confirm = State()
+
+
+class SupportStates(StatesGroup):
+    waiting_message = State()
+    waiting_reply = State()
