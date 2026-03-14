@@ -1156,6 +1156,7 @@ async def count_support_messages(status: str = None) -> int:
 async def get_support_stats() -> dict:
     """Получить статистику по сообщениям поддержки."""
     async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
         async with db.execute("""
             SELECT 
                 COUNT(*) as total,
