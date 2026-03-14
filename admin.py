@@ -222,223 +222,473 @@ LANDING_HTML = """<!DOCTYPE html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>MindGame — Бот для осознанной жизни</title>
+  <title>MindGame — Твой персональный тренер осознанности с AI</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
-      --accent:#7C3AED;--accent2:#A78BFA;--dark:#0D0D1A;--card:#13132A;
-      --text:#E2E8F0;--muted:#94A3B8;--border:#1E1E3A;
+      --primary:#8B5CF6;--primary-light:#A78BFA;--primary-dark:#7C3AED;
+      --accent:#06B6D4;--accent2:#22D3EE;
+      --dark:#0A0A0F;--dark-2:#12121A;--card:#161622;
+      --text:#F1F5F9;--text-muted:#94A3B8;--border:#27273A;
+      --success:#10B981;--warning:#F59E0B;--danger:#EF4444;
     }
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-         background:var(--dark);color:var(--text);line-height:1.6}
-    a{color:var(--accent2);text-decoration:none}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:var(--dark);color:var(--text);line-height:1.6;overflow-x:hidden}
+    a{color:var(--primary-light);text-decoration:none;transition:.2s}
+    a:hover{color:white}
+    
+    /* ANIMATIONS */
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    @keyframes pulse-glow{0%,100%{box-shadow:0 0 20px rgba(139,92,246,.3)}50%{box-shadow:0 0 40px rgba(139,92,246,.5)}}
+    @keyframes gradient{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    
     /* NAV */
     nav{display:flex;justify-content:space-between;align-items:center;
-        padding:20px 40px;position:sticky;top:0;z-index:100;
-        background:rgba(13,13,26,.85);backdrop-filter:blur(12px);
+        padding:16px 32px;position:sticky;top:0;z-index:1000;
+        background:rgba(10,10,15,.9);backdrop-filter:blur(20px);
         border-bottom:1px solid var(--border)}
-    .logo{font-size:20px;font-weight:800;color:white;letter-spacing:-.5px}
-    .logo span{color:var(--accent2)}
-    .nav-btn{background:var(--accent);color:white;padding:9px 20px;
-             border-radius:10px;font-size:14px;font-weight:600;transition:.2s}
-    .nav-btn:hover{background:#6D28D9}
+    .logo{font-size:22px;font-weight:800;color:white;letter-spacing:-.5px}
+    .logo span{background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .nav-btn{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;
+             padding:10px 24px;border-radius:12px;font-size:14px;font-weight:600;
+             transition:.3s;border:none;cursor:pointer}
+    .nav-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(139,92,246,.4)}
+    
     /* HERO */
-    .hero{text-align:center;padding:100px 20px 80px;max-width:760px;margin:0 auto}
-    .hero-tag{display:inline-block;background:rgba(124,58,237,.2);color:var(--accent2);
-              border:1px solid rgba(124,58,237,.4);padding:6px 16px;border-radius:20px;
-              font-size:13px;font-weight:600;margin-bottom:24px;letter-spacing:.05em}
-    h1{font-size:clamp(36px,6vw,64px);font-weight:900;line-height:1.1;
-       color:white;margin-bottom:24px;letter-spacing:-.02em}
-    h1 span{background:linear-gradient(135deg,#A78BFA,#7C3AED);
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    .hero p{font-size:19px;color:var(--muted);max-width:560px;margin:0 auto 40px}
+    .hero{position:relative;text-align:center;padding:120px 20px 80px;max-width:900px;margin:0 auto}
+    .hero-tag{display:inline-flex;align-items:center;gap:8px;
+              background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(6,182,212,.2));
+              border:1px solid rgba(139,92,246,.4);padding:8px 20px;border-radius:24px;
+              font-size:13px;font-weight:600;margin-bottom:28px;letter-spacing:.05em;
+              animation:float 3s ease-in-out infinite}
+    .hero-tag::before{content:'🤖';font-size:16px}
+    h1{font-size:clamp(42px,8vw,72px);font-weight:900;line-height:1.05;
+       color:white;margin-bottom:24px;letter-spacing:-.03em}
+    h1 span{background:linear-gradient(135deg,var(--primary-light),var(--accent2));
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+            background-size:200% 200%;animation:gradient 5s ease infinite}
+    .hero p{font-size:20px;color:var(--text-muted);max-width:600px;margin:0 auto 40px;line-height:1.7}
     .cta-group{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
-    .btn-primary{background:linear-gradient(135deg,#7C3AED,#5B21B6);color:white;
-                 padding:16px 36px;border-radius:14px;font-size:16px;font-weight:700;
-                 transition:.25s;box-shadow:0 4px 24px rgba(124,58,237,.4)}
-    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(124,58,237,.5)}
-    .btn-secondary{background:transparent;color:var(--text);padding:16px 36px;
-                   border-radius:14px;font-size:16px;font-weight:600;
-                   border:1.5px solid var(--border);transition:.2s}
-    .btn-secondary:hover{border-color:var(--accent2);color:var(--accent2)}
+    .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;
+                 padding:18px 42px;border-radius:16px;font-size:17px;font-weight:700;
+                 transition:.3s;box-shadow:0 4px 24px rgba(139,92,246,.4);border:none;cursor:pointer}
+    .btn-primary:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(139,92,246,.5)}
+    .btn-secondary{background:rgba(255,255,255,.05);color:var(--text);padding:18px 42px;
+                   border-radius:16px;font-size:17px;font-weight:600;
+                   border:1.5px solid var(--border);transition:.3s;cursor:pointer}
+    .btn-secondary:hover{border-color:var(--primary-light);background:rgba(139,92,246,.1)}
+    
     /* STATS */
-    .stats-bar{display:flex;justify-content:center;gap:48px;padding:48px 20px;
+    .stats-bar{display:flex;justify-content:center;gap:32px;padding:48px 20px;
                border-top:1px solid var(--border);border-bottom:1px solid var(--border);
-               flex-wrap:wrap}
-    .stat{text-align:center}
-    .stat-num{font-size:36px;font-weight:900;color:white}
-    .stat-lbl{font-size:14px;color:var(--muted);margin-top:4px}
-    /* BENEFITS */
-    section{padding:80px 20px;max-width:1100px;margin:0 auto}
-    .section-tag{text-align:center;display:block;color:var(--accent2);font-size:13px;
-                 font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
-    h2{text-align:center;font-size:clamp(28px,4vw,44px);font-weight:800;
-       color:white;margin-bottom:56px;letter-spacing:-.02em}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:20px;
-          padding:32px;transition:.25s}
-    .card:hover{border-color:rgba(124,58,237,.5);transform:translateY(-4px);
-                box-shadow:0 12px 40px rgba(0,0,0,.4)}
-    .card-icon{font-size:40px;margin-bottom:16px}
-    .card h3{font-size:19px;font-weight:700;color:white;margin-bottom:10px}
-    .card p{font-size:15px;color:var(--muted);line-height:1.65}
+               flex-wrap:wrap;background:rgba(139,92,246,.03)}
+    .stat{text-align:center;min-width:120px}
+    .stat-num{font-size:42px;font-weight:900;background:linear-gradient(135deg,var(--primary-light),var(--accent2));
+              -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .stat-lbl{font-size:13px;color:var(--text-muted);margin-top:6px;font-weight:500;text-transform:uppercase;letter-spacing:.08em}
+    
+    /* SECTIONS */
+    section{padding:100px 20px;max-width:1200px;margin:0 auto}
+    .section-tag{text-align:center;display:inline-flex;align-items:center;gap:6px;
+                 color:var(--primary-light);font-size:13px;font-weight:700;
+                 letter-spacing:.15em;text-transform:uppercase;margin-bottom:16px;
+                 background:rgba(139,92,246,.1);padding:6px 16px;border-radius:20px}
+    h2{text-align:center;font-size:clamp(32px,5vw,52px);font-weight:800;
+       color:white;margin-bottom:20px;letter-spacing:-.02em}
+    .section-subtitle{text-align:center;font-size:18px;color:var(--text-muted);
+                      max-width:600px;margin:0 auto 60px;line-height:1.7}
+    
+    /* FEATURES GRID */
+    .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px}
+    .feature-card{position:relative;background:var(--card);border:1px solid var(--border);
+                  border-radius:24px;padding:32px;transition:.3s;overflow:hidden}
+    .feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+                          background:linear-gradient(90deg,var(--primary),var(--accent));opacity:0;transition:.3s}
+    .feature-card:hover{transform:translateY(-6px);border-color:rgba(139,92,246,.4);
+                        box-shadow:0 20px 60px rgba(0,0,0,.4)}
+    .feature-card:hover::before{opacity:1}
+    .feature-icon{font-size:44px;margin-bottom:20px;display:block}
+    .feature-card h3{font-size:20px;font-weight:700;color:white;margin-bottom:12px}
+    .feature-card p{font-size:15px;color:var(--text-muted);line-height:1.7}
+    .feature-badge{display:inline-block;background:rgba(6,182,212,.15);color:var(--accent2);
+                   padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;
+                   margin-top:16px;text-transform:uppercase;letter-spacing:.08em}
+    
+    /* AI FEATURES */
+    .ai-features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:60px}
+    .ai-card{background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(6,182,212,.05));
+             border:1px solid rgba(139,92,246,.3);border-radius:20px;padding:28px;
+             text-align:center;transition:.3s}
+    .ai-card:hover{transform:scale(1.02);border-color:var(--primary-light)}
+    .ai-icon{font-size:36px;margin-bottom:16px}
+    .ai-card h4{font-size:17px;font-weight:700;color:white;margin-bottom:8px}
+    .ai-card p{font-size:14px;color:var(--text-muted)}
+    
     /* HOW IT WORKS */
-    .steps{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:32px}
-    .step{text-align:center}
-    .step-num{width:52px;height:52px;background:rgba(124,58,237,.15);
-              border:2px solid var(--accent);border-radius:50%;display:flex;
-              align-items:center;justify-content:center;margin:0 auto 16px;
-              font-size:20px;font-weight:800;color:var(--accent2)}
-    .step h3{font-size:17px;font-weight:700;color:white;margin-bottom:8px}
-    .step p{font-size:14px;color:var(--muted)}
+    .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:40px}
+    .step{text-align:center;position:relative}
+    .step-num{width:64px;height:64px;background:linear-gradient(135deg,var(--primary),var(--accent));
+              border-radius:20px;display:flex;align-items:center;justify-content:center;
+              margin:0 auto 24px;font-size:26px;font-weight:800;color:white;
+              box-shadow:0 8px 32px rgba(139,92,246,.4);animation:float 3s ease-in-out infinite}
+    .step h3{font-size:19px;font-weight:700;color:white;margin-bottom:12px}
+    .step p{font-size:15px;color:var(--text-muted);line-height:1.7}
+    
     /* LEVELS */
-    .levels{display:flex;flex-direction:column;gap:12px;max-width:600px;margin:0 auto}
-    .level-row{display:flex;align-items:center;gap:16px;background:var(--card);
-               border:1px solid var(--border);border-radius:14px;padding:16px 20px}
-    .level-icon{font-size:28px;flex-shrink:0}
-    .level-name{font-weight:700;color:white;font-size:15px}
-    .level-xp{margin-left:auto;font-size:13px;color:var(--muted)}
+    .levels{display:flex;flex-direction:column;gap:16px;max-width:700px;margin:0 auto}
+    .level-row{display:flex;align-items:center;gap:20px;background:var(--card);
+               border:1px solid var(--border);border-radius:18px;padding:20px 24px;
+               transition:.3s}
+    .level-row:hover{border-color:rgba(139,92,246,.4);transform:translateX(8px)}
+    .level-icon{font-size:32px;flex-shrink:0}
+    .level-info{flex:1}
+    .level-name{font-weight:700;color:white;font-size:16px}
+    .level-desc{font-size:13px;color:var(--text-muted);margin-top:4px}
+    .level-xp{font-size:13px;color:var(--primary-light);font-weight:700;background:rgba(139,92,246,.15);
+              padding:6px 14px;border-radius:10px}
+    
+    /* GAMIFICATION */
+    .gamification-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-top:50px}
+    .gam-card{text-align:center;background:var(--card);border:1px solid var(--border);
+              border-radius:20px;padding:28px;transition:.3s}
+    .gam-card:hover{transform:translateY(-4px);border-color:var(--primary-light)}
+    .gam-icon{font-size:40px;margin-bottom:16px}
+    .gam-value{font-size:32px;font-weight:800;color:white;margin-bottom:8px}
+    .gam-label{font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em}
+    
+    /* TESTIMONIAL */
+    .testimonial{background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(6,182,212,.05));
+                 border:1px solid rgba(139,92,246,.3);border-radius:24px;padding:40px;
+                 text-align:center;max-width:800px;margin:0 auto}
+    .testimonial-text{font-size:20px;color:var(--text);font-style:italic;line-height:1.8;margin-bottom:24px}
+    .testimonial-author{color:var(--primary-light);font-weight:600}
+    
     /* ADMIN LOGIN */
     .login-section{background:var(--card);border:1px solid var(--border);
                    border-radius:24px;max-width:440px;margin:0 auto;padding:48px 40px}
     .login-section h2{text-align:center;margin-bottom:32px;font-size:24px}
     .field{margin-bottom:20px}
-    .field label{display:block;font-size:13px;font-weight:600;color:var(--muted);
+    .field label{display:block;font-size:13px;font-weight:600;color:var(--text-muted);
                  margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
-    .field input{width:100%;padding:14px 16px;background:#0D0D1A;color:white;
+    .field input{width:100%;padding:14px 16px;background:var(--dark-2);color:white;
                  border:1.5px solid var(--border);border-radius:12px;font-size:15px;
                  outline:none;transition:.2s}
-    .field input:focus{border-color:var(--accent)}
-    .login-btn{width:100%;padding:15px;background:linear-gradient(135deg,#7C3AED,#5B21B6);
+    .field input:focus{border-color:var(--primary-light)}
+    .login-btn{width:100%;padding:15px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));
                color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;
-               cursor:pointer;transition:.25s;margin-top:8px}
-    .login-btn:hover{opacity:.9;transform:translateY(-1px)}
+               cursor:pointer;transition:.3s}
+    .login-btn:hover{opacity:.9;transform:translateY(-2px)}
     .error-msg{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);
                color:#FCA5A5;padding:12px 16px;border-radius:10px;
                font-size:14px;margin-bottom:20px;text-align:center}
+    
     /* FOOTER */
-    footer{text-align:center;padding:48px 20px;color:var(--muted);font-size:14px;
+    footer{text-align:center;padding:48px 20px;color:var(--text-muted);font-size:14px;
            border-top:1px solid var(--border)}
-    footer strong{color:var(--accent2)}
-    /* GLOW bg */
-    .glow{position:fixed;width:600px;height:600px;border-radius:50%;
-          background:radial-gradient(circle,rgba(124,58,237,.12),transparent 70%);
-          top:-200px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:0}
+    footer strong{color:var(--primary-light)}
+    
+    /* BG EFFECTS */
+    .bg-glow{position:fixed;width:800px;height:800px;border-radius:50%;
+              background:radial-gradient(circle,rgba(139,92,246,.08),transparent 60%);
+              top:-300px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:0}
+    .bg-glow-2{position:fixed;width:600px;height:600px;border-radius:50%;
+               background:radial-gradient(circle,rgba(6,182,212,.06),transparent 60%);
+               bottom:-200px;right:-100px;pointer-events:none;z-index:0}
+    
+    /* RESPONSIVE */
+    @media(max-width:768px){
+      nav{padding:14px 20px}
+      .hero{padding:80px 16px 60px}
+      .stats-bar{gap:24px}
+      .features-grid{grid-template-columns:1fr}
+      .cta-group{flex-direction:column}
+      .btn-primary,.btn-secondary{width:100%}
+    }
   </style>
 </head>
 <body>
-<div class="glow"></div>
+<div class="bg-glow"></div>
+<div class="bg-glow-2"></div>
 
 <!-- NAV -->
 <nav>
   <div class="logo">Mind<span>Game</span></div>
-  <a class="nav-btn" href="https://t.me/Vadimbagautdinov_bot" target="_blank">🚀 Открыть бота</a>
+  <a class="nav-btn" href="https://t.me/Vadimbagautdinov_bot" target="_blank">🚀 Запустить бота</a>
 </nav>
 
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-tag">✨ Telegram-бот для осознанной жизни</div>
+  <div class="hero-tag">AI-powered тренер осознанности</div>
   <h1>Стань <span>автором</span><br>своей реальности</h1>
-  <p>Фиксируй триггеры, веди дневник, выполняй задачи и наблюдай,
-     как меняется твоя жизнь — шаг за шагом, балл за баллом.</p>
+  <p>Первый Telegram-бот с глубоким AI-анализом триггеров, паттернов поведения и персональными инсайтами. Геймификация, которая превращает рост в увлекательную игру.</p>
   <div class="cta-group">
-    <a class="btn-primary" href="https://t.me/Vadimbagautdinov_bot" target="_blank">🤖 Запустить бота</a>
-    <a class="btn-secondary" href="#benefits">Как это работает →</a>
+    <a class="btn-primary" href="https://t.me/Vadimbagautdinov_bot" target="_blank">🤖 Начать бесплатно</a>
+    <a class="btn-secondary" href="#features">Узнать больше ↓</a>
   </div>
 </div>
 
 <!-- STATS -->
 <div class="stats-bar">
-  <div class="stat"><div class="stat-num">5</div><div class="stat-lbl">уровней роста</div></div>
-  <div class="stat"><div class="stat-num">6</div><div class="stat-lbl">модулей практик</div></div>
-  <div class="stat"><div class="stat-num">∞</div><div class="stat-lbl">инсайтов о себе</div></div>
-  <div class="stat"><div class="stat-num">AI</div><div class="stat-lbl">анализ эмоций</div></div>
+  <div class="stat"><div class="stat-num">5</div><div class="stat-lbl">Уровней</div></div>
+  <div class="stat"><div class="stat-num">12+</div><div class="stat-lbl">Фич</div></div>
+  <div class="stat"><div class="stat-num">4</div><div class="stat-lbl">AI Модели</div></div>
+  <div class="stat"><div class="stat-num">∞</div><div class="stat-lbl">Инсайтов</div></div>
 </div>
 
-<!-- BENEFITS -->
-<section id="benefits">
-  <span class="section-tag">Почему MindGame?</span>
-  <h2>Всё, что нужно для роста</h2>
-  <div class="grid">
-    <div class="card">
-      <div class="card-icon">🎯</div>
+<!-- FEATURES -->
+<section id="features">
+  <span class="section-tag">✨ Возможности</span>
+  <h2>Всё для твоей трансформации</h2>
+  <p class="section-subtitle">12 мощных инструментов для работы с сознанием, эмоциями и поведением</p>
+  
+  <div class="features-grid">
+    <div class="feature-card">
+      <span class="feature-icon">🧩</span>
+      <h3>AI-анализ паттернов</h3>
+      <p>Глубокий анализ твоих триггеров с выявлением скрытых связей. 3 уровня глубины: от поверхностных реакций к глубинным убеждениям.</p>
+      <span class="feature-badge">🔥 Уникальная фича</span>
+    </div>
+    
+    <div class="feature-card">
+      <span class="feature-icon">📝</span>
       <h3>Дневник триггеров</h3>
-      <p>Фиксируй ситуации, которые выбивают тебя из колеи.
-         ИИ определяет эмоцию, категорию и помогает найти зону контроля.</p>
+      <p>Фиксируй ситуации, которые задевают. AI определяет эмоцию, категорию, помогает найти зону контроля и получить инсайт.</p>
+      <span class="feature-badge">AI-powered</span>
     </div>
-    <div class="card">
-      <div class="card-icon">📔</div>
-      <h3>Ежедневный дневник</h3>
-      <p>Три минуты рефлексии в день строят осознанность за месяц.
-         Отслеживай настроение, энергию и стресс в динамике.</p>
+    
+    <div class="feature-card">
+      <span class="feature-icon">📔</span>
+      <h3>Вечерний дневник</h3>
+      <p>3 минуты рефлексии в день. Отслеживай настроение, энергию, напряжение. AI выделяет инсайты из записей.</p>
+      <span class="feature-badge">Ежедневная практика</span>
     </div>
-    <div class="card">
-      <div class="card-icon">✅</div>
-      <h3>Задачи с вознаграждением</h3>
-      <p>Превращай страхи в действия. Чем сложнее задача — тем больше
-         баллов. Дискомфортные шаги оцениваются выше всего.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🛑</div>
+    
+    <div class="feature-card">
+      <span class="feature-icon">🛑</span>
       <h3>Стоп-режим</h3>
-      <p>Экстренная помощь в момент стресса: назови чувство,
-         оцени интенсивность, сделай паузу — и получи конкретный совет.</p>
+      <p>Экстренная помощь при сильных эмоциях. Дыхательные упражнения, оценка интенсивности, конкретные советы.</p>
+      <span class="feature-badge">SOS-инструмент</span>
     </div>
-    <div class="card">
-      <div class="card-icon">🏆</div>
-      <h3>Геймификация</h3>
-      <p>Баллы, уровни, достижения — практики становятся привычкой,
-         когда за ними стоит прогресс и конкретная награда в магазине.</p>
+    
+    <div class="feature-card">
+      <span class="feature-icon">🎤</span>
+      <h3>Голосовые триггеры</h3>
+      <p>Записывай триггеры голосом. Оффлайн-транскрибация через Vosk — приватно, быстро, без интернета.</p>
+      <span class="feature-badge">Offline STT</span>
     </div>
-    <div class="card">
-      <div class="card-icon">🛍</div>
-      <h3>Магазин баллов</h3>
-      <p>Трать заработанные баллы на консультации, курсы и цифровые
-         материалы. Развитие мотивирует само себя.</p>
+    
+    <div class="feature-card">
+      <span class="feature-icon">✅</span>
+      <h3>Задачи роста</h3>
+      <p>Превращай страхи в действия. Дискомфортные задачи оцениваются выше. Преврати рост в игру с наградами.</p>
+      <span class="feature-badge">Геймификация</span>
+    </div>
+    
+    <div class="feature-card">
+      <span class="feature-icon">🏆</span>
+      <h3>Достижения</h3>
+      <p>10+ достижений за серии дней, количество триггеров, глубину практики. Коллекционируй прогресс.</p>
+      <span class="feature-badge">Collection</span>
+    </div>
+    
+    <div class="feature-card">
+      <span class="feature-icon">🛍</span>
+      <h3>Магазин наград</h3>
+      <p>Трать баллы на консультации, курсы, материалы. Реальные награды за реальные изменения.</p>
+      <span class="feature-badge">Rewards</span>
+    </div>
+    
+    <div class="feature-card">
+      <span class="feature-icon">📊</span>
+      <h3>Недельные отчёты</h3>
+      <p>Автоматическая сводка каждую неделю: триггеры, записи, баллы, серии. Видимый прогресс.</p>
+      <span class="feature-badge">Auto-analytics</span>
+    </div>
+    
+    <div class="feature-card">
+      <span class="feature-icon">👥</span>
+      <h3>Реферальная система</h3>
+      <p>+50 баллов за каждого друга. Отслеживай приглашённых, смотри статистику в профиле.</p>
+      <span class="feature-badge">+50 pts/friend</span>
+    </div>
+    
+    <div class="feature-card">
+      <span class="feature-icon">🔔</span>
+      <h3>Умные напоминания</h3>
+      <p>Дневник в 20:00, триггеры в 13:00, случайные чек-ины. 5 напоминаний в день без спама.</p>
+      <span class="feature-badge">Scheduler</span>
+    </div>
+    
+    <div class="feature-card">
+      <span class="feature-icon">📱</span>
+      <h3>Mini App</h3>
+      <p>Полноценное веб-приложение в Telegram. 5 вкладок: профиль, триггеры, дневник, задачи, магазин.</p>
+      <span class="feature-badge">Web interface</span>
+    </div>
+  </div>
+  
+  <!-- AI MODELS -->
+  <div class="ai-features">
+    <div class="ai-card">
+      <div class="ai-icon">🤖</div>
+      <h4>Claude (Anthropic)</h4>
+      <p>Лучшее качество анализа</p>
+    </div>
+    <div class="ai-card">
+      <div class="ai-icon">⚡</div>
+      <h4>Groq Cloud</h4>
+      <p>Мгновенные ответы</p>
+    </div>
+    <div class="ai-card">
+      <div class="ai-icon">💎</div>
+      <h4>Google Gemini</h4>
+      <p>Мультимодальный AI</p>
+    </div>
+    <div class="ai-card">
+      <div class="ai-icon">🎯</div>
+      <h4>Vosk STT</h4>
+      <p>Оффлайн-транскрибация</p>
     </div>
   </div>
 </section>
 
 <!-- HOW IT WORKS -->
 <section style="border-top:1px solid var(--border)">
-  <span class="section-tag">Как это работает</span>
+  <span class="section-tag">🎮 Процесс</span>
   <h2>Три шага к осознанности</h2>
+  <p class="section-subtitle">Простой старт, глубокая трансформация</p>
+  
   <div class="steps">
     <div class="step">
       <div class="step-num">1</div>
       <h3>Запусти бота</h3>
-      <p>Пройди быстрый онбординг — 4 экрана, 30 секунд. Подпишись на канал и получи первые 50 баллов.</p>
+      <p>30-секундный онбординг. Подписка на канал = +50 стартовых баллов. Первое касание с практикой.</p>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <h3>Фиксируй и рефлексируй</h3>
-      <p>Каждый день записывай триггеры и ведь дневник. ИИ-анализ покажет паттерны твоих реакций.</p>
+      <h3>Практикуй ежедневно</h3>
+      <p>Записывай триггеры, веди дневник, выполняй задачи. AI анализирует, scheduler напоминает.</p>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <h3>Расти и получай награды</h3>
-      <p>Повышай уровень, выполняй задачи, трать баллы в магазине. Твои изменения становятся видимыми.</p>
+      <h3>Получай результаты</h3>
+      <p>Растут уровни, копятся баллы, открываются достижения. Паттерны становятся видны.</p>
+    </div>
+  </div>
+</section>
+
+<!-- GAMIFICATION -->
+<section style="border-top:1px solid var(--border)">
+  <span class="section-tag">🎯 Геймификация</span>
+  <h2>Твой прогресс в цифрах</h2>
+  <p class="section-subtitle">Каждое действие приносит очки и приближает к новому уровню</p>
+  
+  <div class="gamification-grid">
+    <div class="gam-card">
+      <div class="gam-icon">📝</div>
+      <div class="gam-value">+5</div>
+      <div class="gam-label">За триггер</div>
+    </div>
+    <div class="gam-card">
+      <div class="gam-icon">💭</div>
+      <div class="gam-value">+2</div>
+      <div class="gam-label">За эмоцию</div>
+    </div>
+    <div class="gam-card">
+      <div class="gam-icon">💡</div>
+      <div class="gam-value">+3</div>
+      <div class="gam-label">За инсайт</div>
+    </div>
+    <div class="gam-card">
+      <div class="gam-icon">📔</div>
+      <div class="gam-value">+10</div>
+      <div class="gam-label">За дневник</div>
+    </div>
+    <div class="gam-card">
+      <div class="gam-icon">🔥</div>
+      <div class="gam-value">+20</div>
+      <div class="gam-label">Серия 7 дней</div>
+    </div>
+    <div class="gam-card">
+      <div class="gam-icon">👥</div>
+      <div class="gam-value">+50</div>
+      <div class="gam-label">За друга</div>
+    </div>
+    <div class="gam-card">
+      <div class="gam-icon">🧩</div>
+      <div class="gam-value">+10</div>
+      <div class="gam-label">Проработка</div>
+    </div>
+    <div class="gam-card">
+      <div class="gam-icon">🛑</div>
+      <div class="gam-value">+3</div>
+      <div class="gam-label">Стоп-режим</div>
     </div>
   </div>
 </section>
 
 <!-- LEVELS -->
 <section style="border-top:1px solid var(--border)">
-  <span class="section-tag">Прогресс</span>
+  <span class="section-tag">📈 Уровни</span>
   <h2>5 уровней трансформации</h2>
+  <p class="section-subtitle">От наблюдателя к автору своей реальности</p>
+  
   <div class="levels">
-    <div class="level-row"><div class="level-icon">👁</div><div><div class="level-name">Наблюдатель</div><div style="font-size:13px;color:var(--muted)">Начало пути — ты начинаешь замечать себя</div></div><div class="level-xp">0 XP</div></div>
-    <div class="level-row"><div class="level-icon">🔍</div><div><div class="level-name">Исследователь себя</div><div style="font-size:13px;color:var(--muted)">Ты изучаешь свои паттерны и реакции</div></div><div class="level-xp">100 XP</div></div>
-    <div class="level-row"><div class="level-icon">🧘</div><div><div class="level-name">Практик осознанности</div><div style="font-size:13px;color:var(--muted)">Практики стали ежедневной привычкой</div></div><div class="level-xp">300 XP</div></div>
-    <div class="level-row"><div class="level-icon">🎮</div><div><div class="level-name">Игрок своей жизни</div><div style="font-size:13px;color:var(--muted)">Ты управляешь реакциями, а не они тобой</div></div><div class="level-xp">700 XP</div></div>
-    <div class="level-row"><div class="level-icon">✨</div><div><div class="level-name">Автор своей реальности</div><div style="font-size:13px;color:var(--muted)">Ты создаёшь жизнь осознанно и намеренно</div></div><div class="level-xp">1500 XP</div></div>
+    <div class="level-row">
+      <div class="level-icon">👁</div>
+      <div class="level-info">
+        <div class="level-name">Наблюдатель</div>
+        <div class="level-desc">Начало пути — ты начинаешь замечать себя</div>
+      </div>
+      <div class="level-xp">0 XP</div>
+    </div>
+    <div class="level-row">
+      <div class="level-icon">🔍</div>
+      <div class="level-info">
+        <div class="level-name">Исследователь себя</div>
+        <div class="level-desc">Ты изучаешь свои паттерны и реакции</div>
+      </div>
+      <div class="level-xp">100 XP</div>
+    </div>
+    <div class="level-row">
+      <div class="level-icon">🧘</div>
+      <div class="level-info">
+        <div class="level-name">Практик осознанности</div>
+        <div class="level-desc">Практики стали ежедневной привычкой</div>
+      </div>
+      <div class="level-xp">300 XP</div>
+    </div>
+    <div class="level-row">
+      <div class="level-icon">🎮</div>
+      <div class="level-info">
+        <div class="level-name">Игрок своей жизни</div>
+        <div class="level-desc">Ты управляешь реакциями, а не они тобой</div>
+      </div>
+      <div class="level-xp">700 XP</div>
+    </div>
+    <div class="level-row">
+      <div class="level-icon">✨</div>
+      <div class="level-info">
+        <div class="level-name">Автор своей реальности</div>
+        <div class="level-desc">Ты создаёшь жизнь осознанно и намеренно</div>
+      </div>
+      <div class="level-xp">1500 XP</div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIAL -->
+<section style="border-top:1px solid var(--border)">
+  <div class="testimonial">
+    <p class="testimonial-text">«За 30 дней я заметил больше паттернов, чем за 3 года терапии. AI-анализ паттернов — это просто вау. Видеть свои глубинные убеждения чёрным по белому...»</p>
+    <p class="testimonial-author">— пользователь MindGame</p>
   </div>
 </section>
 
 <!-- ADMIN LOGIN -->
 <section id="admin-login" style="border-top:1px solid var(--border)">
-  <span class="section-tag">Панель управления</span>
-  <h2>Вход для администратора</h2>
+  <span class="section-tag">🔐 Админ</span>
+  <h2>Панель управления</h2>
   <div class="login-section">
     <form method="post" action="/login">
       <div class="field">
@@ -449,14 +699,17 @@ LANDING_HTML = """<!DOCTYPE html>
         <label>Пароль</label>
         <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
       </div>
-      <button type="submit" class="login-btn">Войти в панель управления →</button>
+      <button type="submit" class="login-btn">Войти →</button>
     </form>
   </div>
 </section>
 
 <footer>
-  <p>MindGame Bot — <strong>@Vadimbagautdinov_bot</strong> — Telegram-бот для осознанной жизни</p>
-  <p style="margin-top:8px">Создан с ❤️ для тех, кто хочет меняться</p>
+  <p>MindGame Bot — <strong>@Vadimbagautdinov_bot</strong></p>
+  <p style="margin-top:8px">Создан с ❤️ и AI для тех, кто хочет меняться</p>
+  <p style="margin-top:16px;font-size:12px;color:var(--text-muted)">
+    Powered by Claude, Groq, Gemini, HuggingFace, Vosk
+  </p>
 </footer>
 </body>
 </html>"""
