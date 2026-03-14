@@ -1707,7 +1707,7 @@ async def referrals_list(request: Request, user_id: str = ""):
 async def support_messages(
     request: Request,
     status: str = "",
-    page: int = 1
+    page_num: int = 1
 ):
     """Страница сообщений поддержки."""
     limit = 50
