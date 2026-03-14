@@ -1859,7 +1859,7 @@ async def support_message_detail(request: Request, message_id: int):
         <button type="submit" class="btn btn-blue">💬 Отправить ответ</button>
     </form>
     """
-    
+
     content = f"""
     <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
         <div>
@@ -1876,14 +1876,14 @@ async def support_message_detail(request: Request, message_id: int):
                         {status_select}
                     </form>
                 </div>
-                
+
                 <div style="background:#F3F4F6;padding:16px;border-radius:8px;margin-bottom:16px">
                     <div style="font-size:12px;color:#6B7280;margin-bottom:8px">Сообщение пользователя:</div>
                     <div style="font-size:15px;line-height:1.6">{msg['message_text']}</div>
                 </div>
-                
-                {reply_form if msg.get('admin_reply') else ''}
-                
+
+                {reply_form if not msg.get('admin_reply') else ''}
+
                 {f'<div style="margin-top:16px;padding:16px;background:#ECFDF5;border-radius:8px"><div style="font-size:12px;color:#059669;margin-bottom:8px">✅ Ответ админа:</div><div style="font-size:15px;line-height:1.6">{msg["admin_reply"]}</div><div style="font-size:12px;color:#6B7280;margin-top:8px">Отвечал: {msg.get("assigned_to", "—")} | {fmt_date(msg.get("answered_at", ""), short=True)}</div></div>' if msg.get('admin_reply') else ''}
             </div>
             
