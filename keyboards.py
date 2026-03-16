@@ -6,8 +6,13 @@ from aiogram.types import (
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 import time
 
-# Добавляем timestamp чтобы Telegram не кэшировал WebApp
-WEBAPP_URL = f"https://vadbag.su/app?v={int(time.time())}"
+# Базовый URL для WebApp (без timestamp)
+WEBAPP_URL_BASE = "https://vadbag.su/app"
+
+
+def _get_webapp_url_with_timestamp() -> str:
+    """Генерирует URL с timestamp для предотвращения кэша."""
+    return f"{WEBAPP_URL_BASE}?v={int(time.time())}"
 
 
 def main_menu() -> ReplyKeyboardMarkup:
@@ -266,7 +271,7 @@ def webapp_inline_button() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(
         text="🎮 Открыть приложение",
-        web_app=WebAppInfo(url=WEBAPP_URL)
+        web_app=WebAppInfo(url=_get_webapp_url_with_timestamp())
     ))
     return builder.as_markup()
 
