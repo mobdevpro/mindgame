@@ -231,6 +231,9 @@ SPA_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>MindGame</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <!-- Подключаем приятные шрифты с поддержкой кириллицы -->
@@ -479,7 +482,11 @@ let cache = {};
 
 // ─── API helper ───────────────────────────────────────────────────────────────
 async function api(path, options = {}) {
-  const res = await fetch(path, {
+  // Добавляем timestamp чтобы избежать кэширования
+  const separator = path.includes('?') ? '&' : '?';
+  const pathWithTimestamp = `${path}${separator}t=${Date.now()}`;
+  
+  const res = await fetch(pathWithTimestamp, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
