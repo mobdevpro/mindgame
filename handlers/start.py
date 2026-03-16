@@ -1,12 +1,12 @@
-from aiogram import Router, F, Bot
-from aiogram.filters import CommandStart, Command
+from aiogram import Router, Command, F, Bot
+from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 import database as db
 import keyboards as kb
 import points_service as ps
-from config import CHANNEL_ID, ADMIN_IDS
+from config import CHANNEL_ID, ADMIN_IDS, DB_PATH, FIXED_DB_PATH
 from states import OnboardingStates
 
 router = Router()
@@ -226,3 +226,51 @@ async def cmd_help(message: Message):
         parse_mode="HTML",
         reply_markup=kb.main_menu()
     )
+
+
+@router.message(Command("mydb"))
+async def cmd_mydb(message: Message):
+    """Показать в какую базу записывает пользователь."""
+    user = await db.get_user(message.from_user.id)
+    
+    if not user:
+        await message.answer("❌ Сначала запусти бота командой /start")
+        return
+    
+    # Считаем триггеры
+    trigger_count = await db.count_triggers_total(user["id"])
+    
+    # Получаем последний триггер
+    last_trigger = await db.get_triggers(user["id"], limit=1)
+    
+    text = f"""
+🔍 <b>Диагностика базы данных</b>
+
+📁 <b>Текущая БД:</b> <code>{DB_PATH}</code>
+🔒 <b>Зафиксированная БД:</b> <code>{FIXED_DB_PATH}</code>
+
+👤 <b>Твой аккаунт:</b>
+   • ID: <code>{user['id']}</code>
+   • Telegram ID: <code>{message.from_user.id}</code>
+   • Username: <code>{user.get('username', 'N/A')}</code>
+   • Реф. код: <code>{user.get('referral_code', 'N/A')}</code>
+   • Баланс: <code>{user.get('points_balance', 0)} TRGR</code>
+
+📊 <b>Статистика:</b>
+   • Триггеров: <code>{trigger_count}</code>
+"""
+    
+    if last_trigger:
+        lt = last_trigger[0]
+        text += f"""
+   • Последний триггер:
+     <i>«{lt['raw_text'][:50]}...»</i>
+     📅 {lt['created_at']}
+"""
+    
+    text += f"""
+🔗 <b>Реферальная ссылка:</b>
+<code>https://t.me/Vadimbagautdinov_bot?start={user.get('referral_code', 'N/A')}</code>
+"""
+    
+    await message.answer(text, parse_mode="HTML")
