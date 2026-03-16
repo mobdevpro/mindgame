@@ -4,8 +4,10 @@ from aiogram.types import (
     WebAppInfo,
 )
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
+import time
 
-WEBAPP_URL = "https://vadbag.su/app"
+# Добавляем timestamp чтобы Telegram не кэшировал WebApp
+WEBAPP_URL = f"https://vadbag.su/app?v={int(time.time())}"
 
 
 def main_menu() -> ReplyKeyboardMarkup:
