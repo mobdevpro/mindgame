@@ -1,6 +1,6 @@
 import aiosqlite
 import json
-from config import DB_PATH
+from config import FIXED_DB_PATH as DB_PATH
 
 
 def fmt_date(date_str: str, short: bool = False) -> str:

@@ -26,6 +26,12 @@ else:
     DB_PATH = "game.db"
     IS_TEST_ENV = False
 
+# ═══════════════════════════════════════════════════════════════
+# ФИКСИРУЕМ DB_PATH ЧТОБЫ НЕ МЕНЯЛСЯ
+# ═══════════════════════════════════════════════════════════════
+# Сохраняем DB_PATH в константу чтобы избежать гонки условий
+FIXED_DB_PATH = DB_PATH
+
 # Общие настройки
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
