@@ -2,7 +2,7 @@
 Handlers for support messages feature.
 Пользователи могут писать в поддержку, админы — отвечать.
 """
-from aiogram import Router, F
+from aiogram import Router, F, Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
