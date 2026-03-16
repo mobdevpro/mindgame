@@ -75,23 +75,23 @@ async def migrate_001_add_points_config():
         """)
 
         # Инициализировать стандартные значения
-        from config import POINTS as DEFAULT_POINTS
+        from config import TRGR as DEFAULT_TRGR
         await db.executemany("""
             INSERT OR IGNORE INTO points_config (rule_name, points_value, category, description)
             VALUES (?, ?, ?, ?)
         """, [
-            ("subscription", DEFAULT_POINTS.get("subscription", 50), "events", "За подписку на канал"),
-            ("first_trigger", DEFAULT_POINTS.get("first_trigger", 20), "triggers", "За первый триггер"),
-            ("trigger_base", DEFAULT_POINTS.get("trigger_base", 5), "triggers", "За запись триггера"),
-            ("trigger_emotion", DEFAULT_POINTS.get("trigger_emotion", 2), "triggers", "За выбор эмоции"),
-            ("trigger_intensity", DEFAULT_POINTS.get("trigger_intensity", 1), "triggers", "За оценку интенсивности"),
-            ("trigger_insight", DEFAULT_POINTS.get("trigger_insight", 3), "triggers", "За инсайт к триггеру"),
-            ("trigger_zone", DEFAULT_POINTS.get("trigger_zone", 3), "triggers", "За зону контроля"),
-            ("first_daily_trigger", DEFAULT_POINTS.get("first_daily_trigger", 5), "triggers", "За первый триггер в день"),
-            ("diary_short", DEFAULT_POINTS.get("diary_short", 5), "diary", "За короткую запись в дневник"),
-            ("diary_full", DEFAULT_POINTS.get("diary_full", 10), "diary", "За полную запись в дневник"),
-            ("diary_streak_7", DEFAULT_POINTS.get("diary_streak_7", 20), "diary", "За 7-дневный стрик дневника"),
-            ("referral", DEFAULT_POINTS.get("referral", 50), "events", "За каждого приглашённого друга"),
+            ("subscription", DEFAULT_TRGR.get("subscription", 50), "events", "За подписку на канал"),
+            ("first_trigger", DEFAULT_TRGR.get("first_trigger", 20), "triggers", "За первый триггер"),
+            ("trigger_base", DEFAULT_TRGR.get("trigger_base", 5), "triggers", "За запись триггера"),
+            ("trigger_emotion", DEFAULT_TRGR.get("trigger_emotion", 2), "triggers", "За выбор эмоции"),
+            ("trigger_intensity", DEFAULT_TRGR.get("trigger_intensity", 1), "triggers", "За оценку интенсивности"),
+            ("trigger_insight", DEFAULT_TRGR.get("trigger_insight", 3), "triggers", "За инсайт к триггеру"),
+            ("trigger_zone", DEFAULT_TRGR.get("trigger_zone", 3), "triggers", "За зону контроля"),
+            ("first_daily_trigger", DEFAULT_TRGR.get("first_daily_trigger", 5), "triggers", "За первый триггер в день"),
+            ("diary_short", DEFAULT_TRGR.get("diary_short", 5), "diary", "За короткую запись в дневник"),
+            ("diary_full", DEFAULT_TRGR.get("diary_full", 10), "diary", "За полную запись в дневник"),
+            ("diary_streak_7", DEFAULT_TRGR.get("diary_streak_7", 20), "diary", "За 7-дневный стрик дневника"),
+            ("referral", DEFAULT_TRGR.get("referral", 50), "events", "За каждого приглашённого друга"),
         ])
 
         await db.commit()
@@ -216,24 +216,24 @@ async def migrate_004_add_message_templates():
              "📔 Дневник каждый день – бонусы\n"
              "🔥 Серия дней подряд – мультипликатор", 
              "text", "onboarding", 3),
-            ("onboarding_step4", "Онбординг: Шаг 4 - Награды", 
+            ("onboarding_step4", "Онбординг: Шаг 4 - Награды",
              "🎯 <b>Реальные действия = реальные награды</b>\n\n"
              "Из каждого триггера рождается действие.\n"
              "Из каждого действия – рост.\n\n"
-             "Твои баллы – это не просто цифры. Их можно тратить на "
-             "продукты и материалы автора.", 
+             "TRGR – это внутренняя валюта бота. Их можно тратить на "
+             "продукты и материалы автора.",
              "text", "onboarding", 4),
-            ("subscription_request", "Запрос подписки", 
+            ("subscription_request", "Запрос подписки",
              "🔐 <b>Последний шаг</b>\n\n"
              "Подпишись на канал {channel} – там выходят материалы, "
              "связанные с практикой.\n\n"
-             "После подписки получишь <b>50 стартовых баллов</b> 🎁", 
+             "После подписки получишь <b>50 стартовых TRGR</b> 🎁",
              "text", "onboarding", 5),
-            ("subscription_success", "Успешная подписка", 
+            ("subscription_success", "Успешная подписка",
              "✅ <b>Подписка подтверждена!</b>\n\n"
-             "🎁 Начислено 50 стартовых баллов\n"
-             "💰 Твой баланс: {balance} баллов\n\n"
-             "Игра началась! Зафиксируй свой первый триггер 👇", 
+             "🎁 Начислено 50 стартовых TRGR\n"
+             "💰 Твой баланс: {balance} TRGR\n\n"
+             "Игра началась! Зафиксируй свой первый триггер 👇",
              "text", "onboarding", 6),
             ("welcome_back", "Возвращение пользователя", 
              "С возвращением, {name}! 👋\n\n"
@@ -266,12 +266,12 @@ async def migrate_004_add_message_templates():
              "<i>{ai_response}</i>\n\n"
              "🏷 Категория: {category}\n"
              "💭 Эмоция: {emotion}\n\n"
-             "Выбери эмоцию точнее или подтверди:", 
+             "Выбери эмоцию точнее или подтверди:",
              "text", "trigger", 15),
-            ("trigger_points", "Начисление баллов за триггер", 
-             "🎉 <b>+{total} очков!</b>\n\n"
+            ("trigger_points", "Начисление TRGR за триггер",
+             "🎉 <b>+{total} TRGR!</b>\n\n"
              "{breakdown}\n\n"
-             "💰 Баланс: {balance} баллов", 
+             "💰 Баланс: {balance} TRGR",
              "text", "trigger", 16),
             ("trigger_ask_emotion", "Запрос эмоции", 
              "💭 Выбери эмоцию или пропусти:", 
@@ -304,13 +304,13 @@ async def migrate_004_add_message_templates():
             ("diary_too_short", "Дневник слишком короткий", 
              "Напиши чуть больше – хотя бы пару предложений 🙏", 
              "text", "diary", 31),
-            ("diary_saved", "Дневник сохранён", 
+            ("diary_saved", "Дневник сохранён",
              "✅ <b>Запись сохранена!</b>\n\n"
              "📝 Текст: {length} симв.\n"
              "💭 Настроение: {mood}\n"
              "⚡ Энергия: {energy}/10\n\n"
-             "🎉 +{points} баллов\n"
-             "💰 Баланс: {balance}", 
+             "🎉 +{points} TRGR\n"
+             "💰 Баланс: {balance}",
              "text", "diary", 32),
             ("diary_already_written", "Дневник уже написан сегодня", 
              "✅ Сегодня уже записано в дневник!\n\n"
@@ -331,24 +331,24 @@ async def migrate_004_add_message_templates():
             ("task_voice_recording", "Запись голосовой задачи", 
              "🎤 Записываю голос...", 
              "text", "task", 41),
-            ("task_saved", "Задача сохранена", 
+            ("task_saved", "Задача сохранена",
              "✅ <b>Задача добавлена!</b>\n\n"
              "📋 {task_text}\n"
-             "{label} • После выполнения: <b>+{points} баллов</b>\n"
+             "{label} • После выполнения: <b>+{points} TRGR</b>\n"
              "{voice_text}"
-             "Когда сделаешь — отметь выполненной и получи очки! 🎯", 
+             "Когда сделаешь — отметь выполненной и получи TRGR! 🎯",
              "text", "task", 42),
-            ("task_list_empty", "Список задач пуст", 
+            ("task_list_empty", "Список задач пуст",
              "✅ <b>Мои задачи</b>\n\n"
              "Задач пока нет.\n\n"
              "Задача — это реальное действие из жизни, которое ты хочешь сделать.\n"
-             "За каждую выполненную задачу начисляются баллы! 🎯", 
+             "За каждую выполненную задачу начисляются TRGR! 🎯",
              "text", "task", 43),
-            ("task_completed", "Задача выполнена", 
+            ("task_completed", "Задача выполнена",
              "🎉 <b>Задача выполнена!</b>\n\n"
              "📋 {task_title}\n"
-             "🎁 +{points} баллов\n"
-             "💰 Баланс: {balance}", 
+             "🎁 +{points} TRGR\n"
+             "💰 Баланс: {balance}",
              "text", "task", 44),
             
             # Stop Mode

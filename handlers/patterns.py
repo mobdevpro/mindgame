@@ -131,7 +131,7 @@ async def on_process_pattern(callback: CallbackQuery, state: FSMContext):
         result["text"] if "text" in result else ps.format_pattern_message(result) +
         "\n\n💡 <b>Проработка паттерна</b>\n\n"
         "Это упражнение поможет интегрировать инсайт.\n\n"
-        "Вы получите +10 баллов за проработку.\n\n"
+        "Вы получите +10 TRGR за проработку.\n\n"
         "Продолжить?",
         parse_mode="HTML",
         reply_markup=kb.confirm_keyboard(
@@ -145,14 +145,14 @@ async def on_process_pattern(callback: CallbackQuery, state: FSMContext):
 async def on_confirm_process(callback: CallbackQuery, state: FSMContext):
     """Подтверждение проработки паттерна."""
     analysis_id = int(callback.data.split(":")[1])
-    
-    # Награждаем баллами
+
+    # Награждаем TRGR
     result = await ps.mark_pattern_processed(analysis_id, callback.from_user.id)
-    
+
     if result["ok"]:
         await callback.message.edit_text(
             f"✅ <b>Паттерн проработан!</b>\n\n"
-            f"🎉 +{result['points']} баллов\n"
+            f"🎉 +{result['points']} TRGR\n"
             f"💰 Баланс: {result['balance']}\n\n"
             "Инсайт интегрирован. Возвращайтесь через неделю за новым анализом!",
             parse_mode="HTML",

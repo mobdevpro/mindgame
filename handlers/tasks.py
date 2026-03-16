@@ -39,7 +39,7 @@ async def show_tasks(update, state: FSMContext):
             "✅ <b>Мои задачи</b>\n\n"
             "Задач пока нет.\n\n"
             "Задача — это реальное действие из жизни, которое ты хочешь сделать.\n"
-            "За каждую выполненную задачу начисляются баллы! 🎯",
+            "За каждую выполненную задачу начисляются TRGR! 🎯",
             parse_mode="HTML",
             reply_markup=kb.tasks_list_keyboard([])
         )
@@ -194,9 +194,9 @@ async def receive_difficulty(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         f"✅ <b>Задача добавлена!</b>\n\n"
         f"📋 {data['task_text']}\n"
-        f"{label} • После выполнения: <b>+{total_points} баллов</b>\n"
+        f"{label} • После выполнения: <b>+{total_points} TRGR</b>\n"
         f"{voice_text}"
-        f"Когда сделаешь — отметь выполненной и получи очки! 🎯",
+        f"Когда сделаешь — отметь выполненной и получи TRGR! 🎯",
         parse_mode="HTML",
         reply_markup=kb.task_detail_keyboard(task_id, "new")
     )
@@ -229,11 +229,11 @@ async def view_task(callback: CallbackQuery, state: FSMContext):
         f"{task['title']}\n\n"
         f"Сложность: {label}\n"
         f"Статус: {status}\n"
-        f"Награда: +{task.get('estimated_points') or points} баллов\n"
+        f"Награда: +{task.get('estimated_points') or points} TRGR\n"
         f"Добавлена: {db.fmt_date(task['created_at'], short=True)}"
     )
     if task.get("points_awarded"):
-        text += f"\n\n🎉 Получено: <b>+{task['points_awarded']} баллов</b>"
+        text += f"\n\n🎉 Получено: <b>+{task['points_awarded']} TRGR</b>"
 
     await callback.message.edit_text(
         text, parse_mode="HTML",
@@ -272,10 +272,10 @@ async def task_done(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         f"🎉 <b>Задача выполнена!</b>\n\n"
         f"✅ {task['title']}\n\n"
-        f"<b>+{result['points']} баллов</b>\n"
-        f"💰 Баланс: {result['balance']} баллов\n\n"
+        f"<b>+{result['points']} TRGR</b>\n"
+        f"💰 Баланс: {result['balance']} TRGR\n\n"
         f"<i>Каждое выполненное действие — это реальный рост.</i>",
         parse_mode="HTML",
         reply_markup=kb.tasks_list_keyboard([])
     )
-    await callback.answer(f"✅ +{result['points']} баллов!")
+    await callback.answer(f"✅ +{result['points']} TRGR!")

@@ -1,4 +1,4 @@
-from config import POINTS, get_level, get_next_level_threshold
+from config import TRGR, get_level, get_next_level_threshold
 import database as db
 
 
@@ -7,7 +7,7 @@ async def award_subscription(telegram_id: int) -> int:
     if not user:
         return 0
     balance = await db.award_points(
-        telegram_id, POINTS["subscription"],
+        telegram_id, TRGR["subscription"],
         "subscription", "Подписка на канал – стартовый бонус"
     )
     return balance or 0
@@ -18,32 +18,32 @@ async def award_trigger(telegram_id: int, trigger_id: int,
                         has_insight: bool, has_zone: bool,
                         is_first_today: bool, is_first_ever: bool,
                         is_voice: bool = False) -> dict:
-    total = POINTS["trigger_base"]
-    breakdown = [f"📝 Запись триггера: +{POINTS['trigger_base']}"]
-    
+    total = TRGR["trigger_base"]
+    breakdown = [f"📝 Запись триггера: +{TRGR['trigger_base']}"]
+
     # Бонус за голосовой триггер
     if is_voice:
         total += 5  # +5 очков за голосовой
         breakdown.append(f"🎤 Голосовой триггер: +5")
 
     if is_first_ever:
-        total += POINTS["first_trigger"]
-        breakdown.append(f"🌱 Первый триггер: +{POINTS['first_trigger']}")
+        total += TRGR["first_trigger"]
+        breakdown.append(f"🌱 Первый триггер: +{TRGR['first_trigger']}")
     if is_first_today:
-        total += POINTS["first_daily_trigger"]
-        breakdown.append(f"☀️ Первая запись дня: +{POINTS['first_daily_trigger']}")
+        total += TRGR["first_daily_trigger"]
+        breakdown.append(f"☀️ Первая запись дня: +{TRGR['first_daily_trigger']}")
     if has_emotion:
-        total += POINTS["trigger_emotion"]
-        breakdown.append(f"💭 Эмоция: +{POINTS['trigger_emotion']}")
+        total += TRGR["trigger_emotion"]
+        breakdown.append(f"💭 Эмоция: +{TRGR['trigger_emotion']}")
     if has_intensity:
-        total += POINTS["trigger_intensity"]
-        breakdown.append(f"⚡ Интенсивность: +{POINTS['trigger_intensity']}")
+        total += TRGR["trigger_intensity"]
+        breakdown.append(f"⚡ Интенсивность: +{TRGR['trigger_intensity']}")
     if has_insight:
-        total += POINTS["trigger_insight"]
-        breakdown.append(f"💡 Вывод: +{POINTS['trigger_insight']}")
+        total += TRGR["trigger_insight"]
+        breakdown.append(f"💡 Вывод: +{TRGR['trigger_insight']}")
     if has_zone:
-        total += POINTS["trigger_zone"]
-        breakdown.append(f"🎯 Зона влияния: +{POINTS['trigger_zone']}")
+        total += TRGR["trigger_zone"]
+        breakdown.append(f"🎯 Зона влияния: +{TRGR['trigger_zone']}")
 
     balance = await db.award_points(
         telegram_id, total, "trigger",
@@ -57,7 +57,7 @@ async def award_trigger(telegram_id: int, trigger_id: int,
 
 
 async def award_diary(telegram_id: int, entry_id: int, is_full: bool) -> dict:
-    points = POINTS["diary_full"] if is_full else POINTS["diary_short"]
+    points = TRGR["diary_full"] if is_full else TRGR["diary_short"]
     balance = await db.award_points(
         telegram_id, points, "diary",
         "Запись в дневник осознанности",
@@ -113,7 +113,7 @@ def format_progress(user: dict) -> str:
         f"🏆 <b>Твой прогресс</b>\n\n"
         f"📛 Уровень {level_num}: {level_name}\n"
         f"⚡ XP: {xp}{progress_bar}\n\n"
-        f"💰 Баллы: {points}\n"
+        f"💰 TRGR: {points}\n"
         f"🔥 Серия дней: {streak}\n"
     )
     return text

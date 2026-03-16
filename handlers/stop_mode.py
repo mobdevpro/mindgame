@@ -144,7 +144,7 @@ async def stop_done(callback: CallbackQuery, state: FSMContext):
         "💪 <b>Отлично.</b>\n\n"
         "Ты выбрал(а) осознанность вместо автоматической реакции.\n"
         "Это и есть практика.\n\n"
-        "<i>+3 балла за остановку перед реакцией</i>",
+        "<i>+3 TRGR за остановку перед реакцией</i>",
         parse_mode="HTML"
     )
     await callback.message.answer("🏠 Главное меню", reply_markup=kb.main_menu())

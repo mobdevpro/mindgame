@@ -351,9 +351,9 @@ async def save_trigger_and_finish(message: Message, state: FSMContext, user_id: 
     # Build response
     breakdown_text = "\n".join(f"  {line}" for line in result["breakdown"])
     response = (
-        f"🎉 <b>+{result['total']} очков!</b>\n\n"
+        f"🎉 <b>+{result['total']} TRGR!</b>\n\n"
         f"{breakdown_text}\n\n"
-        f"💰 Баланс: {result['balance']} баллов"
+        f"💰 Баланс: {result['balance']} TRGR"
     )
 
     if new_achievements:
@@ -472,11 +472,11 @@ async def reflect_step_3_answer(message: Message, state: FSMContext):
         f"✅ <b>Разбор завершён!</b>\n\n"
         f"Ты прошёл(а) все 3 шага рефлексии.\n"
         f"Это большой шаг к осознанности! 🙏\n\n"
-        f"🎉 +10 очков за глубокую работу!",
+        f"🎉 +10 TRGR за глубокую работу!",
         parse_mode="HTML",
         reply_markup=kb.after_trigger_keyboard(trigger_id)
     )
-    
+
     # Award bonus points for completing reflection
     user = await db.get_user(message.from_user.id)
     if user:
@@ -614,7 +614,7 @@ async def view_trigger(callback: CallbackQuery, state: FSMContext):
         text += f"\n🎯 Зона влияния:\n<i>{t['zone_of_control_text']}</i>\n"
     if t.get("insight_text"):
         text += f"\n💡 Вывод:\n<i>{t['insight_text']}</i>\n"
-    text += f"\n✨ Начислено: {t.get('points_awarded', 0)} баллов"
+    text += f"\n✨ Начислено: {t.get('points_awarded', 0)} TRGR"
 
     await callback.message.edit_text(
         text, parse_mode="HTML",

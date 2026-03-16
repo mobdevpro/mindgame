@@ -619,7 +619,7 @@ async function renderProfile(el) {
           ${data.username ? `<div class="text-secondary" style="font-size:13px;margin-bottom:8px">@${data.username}</div>` : ''}
           <div style="margin-bottom:8px"><span class="level-badge">${lvl_emoji} ${data.level_name}</span></div>
           <div style="font-size:12px;color:var(--text-secondary)">
-            ${data.next_threshold ? `До ур. ${data.level_num + 1}: ${data.next_threshold - data.points} очков` : 'Максимальный уровень!'}
+            ${data.next_threshold ? `До ур. ${data.level_num + 1}: ${data.next_threshold - data.points} TRGR` : 'Максимальный уровень!'}
           </div>
         </div>
       </div>
@@ -637,7 +637,7 @@ async function renderProfile(el) {
       </div>
       <div class="stat">
         <div class="stat-v">${data.weekly.points || 0}</div>
-        <div class="stat-l">Очков/нед</div>
+        <div class="stat-l">TRGR/нед</div>
       </div>
     </div>
 
@@ -661,7 +661,7 @@ async function renderProfile(el) {
         </div>
         <div>
           <div style="font-size:28px;font-weight:800;color:#F59E0B;margin-bottom:4px" id="statPoints">${data.weekly.points}</div>
-          <div class="text-muted" style="font-size:12px">очков</div>
+          <div class="text-muted" style="font-size:12px">TRGR</div>
         </div>
       </div>
     </div>
@@ -692,7 +692,7 @@ async function renderProfile(el) {
         <div style="flex:1;background:var(--bg);border-radius:10px;padding:10px 14px;font-size:16px;font-weight:700;letter-spacing:.1em;font-family:monospace;cursor:pointer" onclick="copyRefLink('${data.referral_code}')">${data.referral_code}</div>
         <button class="btn btn-buy" style="padding:10px 14px" onclick="copyRefLink('${data.referral_code}')">Копировать</button>
       </div>
-      <div class="text-muted mt-8" style="font-size:13px">+50 очков за каждого друга!</div>
+      <div class="text-muted mt-8" style="font-size:13px">+50 TRGR за каждого друга!</div>
     </div>
     ` : ''}
   `;
@@ -877,7 +877,7 @@ async function completeTask(taskId) {
   try {
     const result = await api(`/api/tasks/${taskId}/complete`, { method: 'POST' });
     tg.HapticFeedback?.notificationOccurred('success');
-    toast(`✅ +${result.points} очков!`);
+    toast(`✅ +${result.points} TRGR!`);
     await renderTasks(document.getElementById('content'));
   } catch (e) {
     toast('❌ ' + e.message);

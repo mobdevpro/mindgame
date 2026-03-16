@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timedelta
 from ai_service import analyze_patterns
 import database as db
-from config import POINTS
+from config import TRGR
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -146,27 +146,27 @@ async def _calculate_trigger_stats(triggers: list[dict], user_id: int) -> dict:
 
 async def mark_pattern_processed(analysis_id: int, telegram_id: int) -> dict:
     """
-    Отметить паттерн как проработанный и наградить баллами.
-    
+    Отметить паттерн как проработанный и наградить TRGR.
+
     Returns:
         dict с результатом
     """
     # Отмечаем как проработанный
     await db.mark_pattern_processed(analysis_id)
-    
-    # Награждаем баллами
+
+    # Награждаем TRGR
     balance = await db.award_points(
         telegram_id=telegram_id,
-        points=POINTS.get("pattern_processed", 10),
+        points=TRGR.get("pattern_processed", 10),
         event_type="pattern_processed",
         description="Проработка AI-паттерна",
         source_type="pattern_analysis",
         source_id=analysis_id
     )
-    
+
     return {
         "ok": True,
-        "points": POINTS.get("pattern_processed", 10),
+        "points": TRGR.get("pattern_processed", 10),
         "balance": balance or 0
     }
 

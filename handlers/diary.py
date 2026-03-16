@@ -172,8 +172,8 @@ async def save_diary_and_finish(message: Message, state: FSMContext, user_id: in
     if insight:
         response += f"\n💡 <i>{insight}</i>\n"
     response += (
-        f"\n🎉 <b>+{result['total']} очков</b>\n"
-        f"💰 Баланс: {result['balance']} баллов\n"
+        f"\n🎉 <b>+{result['total']} TRGR</b>\n"
+        f"💰 Баланс: {result['balance']} TRGR\n"
         f"🔥 Серия дней: {streak}"
     )
 

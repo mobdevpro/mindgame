@@ -31,7 +31,7 @@ async def show_shop(update, state: FSMContext):
     balance = user.get("points_balance", 0)
     header = (
         f"🛍 <b>Магазин</b>\n\n"
-        f"💰 Твой баланс: <b>{balance} баллов</b>\n\n"
+        f"💰 Твой баланс: <b>{balance} TRGR</b>\n\n"
         f"🚧 <b>Магазин в разработке!</b>\n\n"
         f"Скоро здесь появятся:\n"
         f"• 📱 Цифровые материалы\n"

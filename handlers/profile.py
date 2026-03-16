@@ -30,7 +30,7 @@ async def show_progress(message: Message, state: FSMContext):
         f"\n<b>За эту неделю:</b>\n"
         f"📝 Триггеров: {stats['triggers']}\n"
         f"📔 Записей в дневнике: {stats['diary']}\n"
-        f"💰 Заработано баллов: {stats['points']}\n"
+        f"💰 Заработано TRGR: {stats['points']}\n"
     )
 
     # Achievements
@@ -170,7 +170,7 @@ async def settings(message: Message, state: FSMContext):
         f"⏰ Время дневника: {ns.get('diary_time', '20:00')}\n\n"
         f"🔗 <b>Твоя реферальная ссылка:</b>\n"
         f"<code>https://t.me/{config.BOT_USERNAME}?start={user.get('referral_code', '')}</code>\n\n"
-        f"За каждого приглашённого друга +{config.POINTS['referral']} баллов!\n\n"
+        f"За каждого приглашённого друга +{config.TRGR['referral']} TRGR!\n\n"
         f"<i>Настройка уведомлений через /settings в следующей версии</i>",
         parse_mode="HTML",
         reply_markup=kb.main_menu()

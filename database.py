@@ -621,10 +621,10 @@ async def get_inviter_by_db_id(user_db_id: int) -> dict | None:
 
 async def award_referral(inviter_telegram_id: int, invited_name: str) -> int:
     """Award referral points to inviter, return new balance."""
-    from config import POINTS
+    from config import TRGR
     balance = await award_points(
         inviter_telegram_id,
-        POINTS["referral"],
+        TRGR["referral"],
         "referral",
         f"Реферал: {invited_name} зарегистрировался по твоей ссылке"
     )

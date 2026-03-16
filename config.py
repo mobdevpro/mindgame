@@ -35,8 +35,8 @@ ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().
 # Populated at bot startup via getMe()
 BOT_USERNAME = ""
 
-# Points rules
-POINTS = {
+# TRGR currency rules (внутренняя валюта бота)
+TRGR = {
     "subscription": 50,
     "first_trigger": 20,
     "trigger_base": 5,
@@ -49,31 +49,31 @@ POINTS = {
     "diary_full": 10,
     "diary_streak_7": 20,
     "referral": 50,
-    "pattern_processed": 10,  # Баллы за проработку паттерна
+    "pattern_processed": 10,  # TRGR за проработку паттерна
 }
 
-_POINTS_CACHE = None
-_POINTS_CACHE_LOADED = False
+_TRGR_CACHE = None
+_TRGR_CACHE_LOADED = False
 
 async def load_points_from_db():
-    global _POINTS_CACHE, _POINTS_CACHE_LOADED
+    global _TRGR_CACHE, _TRGR_CACHE_LOADED
     try:
         from database import get_points_config_dict
-        _POINTS_CACHE = await get_points_config_dict()
-        _POINTS_CACHE_LOADED = True
-        return _POINTS_CACHE
+        _TRGR_CACHE = await get_points_config_dict()
+        _TRGR_CACHE_LOADED = True
+        return _TRGR_CACHE
     except Exception:
-        _POINTS_CACHE = POINTS.copy()
-        _POINTS_CACHE_LOADED = True
-        return _POINTS_CACHE
+        _TRGR_CACHE = TRGR.copy()
+        _TRGR_CACHE_LOADED = True
+        return _TRGR_CACHE
 
 def get_points(rule_name: str, default: int = None) -> int:
-    global _POINTS_CACHE, _POINTS_CACHE_LOADED
-    if _POINTS_CACHE is None and not _POINTS_CACHE_LOADED:
-        return POINTS.get(rule_name, default or 0)
-    if _POINTS_CACHE is None:
-        _POINTS_CACHE = POINTS.copy()
-    return _POINTS_CACHE.get(rule_name, default or POINTS.get(rule_name, 0))
+    global _TRGR_CACHE, _TRGR_CACHE_LOADED
+    if _TRGR_CACHE is None and not _TRGR_CACHE_LOADED:
+        return TRGR.get(rule_name, default or 0)
+    if _TRGR_CACHE is None:
+        _TRGR_CACHE = TRGR.copy()
+    return _TRGR_CACHE.get(rule_name, default or TRGR.get(rule_name, 0))
 
 LEVELS = [
     (0, "Наблюдатель 👁"),

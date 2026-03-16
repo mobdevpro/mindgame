@@ -494,22 +494,22 @@ LANDING_HTML = """<!DOCTYPE html>
     <div class="feature-card">
       <span class="feature-icon">🛍</span>
       <h3>Магазин наград</h3>
-      <p>Трать баллы на консультации, курсы, материалы. Реальные награды за реальные изменения.</p>
+      <p>Трать TRGR на консультации, курсы, материалы. Реальные награды за реальные изменения.</p>
       <span class="feature-badge">Rewards</span>
     </div>
-    
+
     <div class="feature-card">
       <span class="feature-icon">📊</span>
       <h3>Недельные отчёты</h3>
-      <p>Автоматическая сводка каждую неделю: триггеры, записи, баллы, серии. Видимый прогресс.</p>
+      <p>Автоматическая сводка каждую неделю: триггеры, записи, TRGR, серии. Видимый прогресс.</p>
       <span class="feature-badge">Auto-analytics</span>
     </div>
-    
+
     <div class="feature-card">
       <span class="feature-icon">👥</span>
       <h3>Реферальная система</h3>
-      <p>+50 баллов за каждого друга. Отслеживай приглашённых, смотри статистику в профиле.</p>
-      <span class="feature-badge">+50 pts/friend</span>
+      <p>+50 TRGR за каждого друга. Отслеживай приглашённых, смотри статистику в профиле.</p>
+      <span class="feature-badge">+50 TRGR/friend</span>
     </div>
     
     <div class="feature-card">
@@ -562,7 +562,7 @@ LANDING_HTML = """<!DOCTYPE html>
     <div class="step">
       <div class="step-num">1</div>
       <h3>Запусти бота</h3>
-      <p>30-секундный онбординг. Подписка на канал = +50 стартовых баллов. Первое касание с практикой.</p>
+      <p>30-секундный онбординг. Подписка на канал = +50 стартовых TRGR. Первое касание с практикой.</p>
     </div>
     <div class="step">
       <div class="step-num">2</div>
@@ -572,7 +572,7 @@ LANDING_HTML = """<!DOCTYPE html>
     <div class="step">
       <div class="step-num">3</div>
       <h3>Получай результаты</h3>
-      <p>Растут уровни, копятся баллы, открываются достижения. Паттерны становятся видны.</p>
+      <p>Растут уровни, копятся TRGR, открываются достижения. Паттерны становятся видны.</p>
     </div>
   </div>
 </section>
@@ -893,8 +893,8 @@ async def dashboard(request: Request):
       <div class="stat"><div class="stat-value">{tasks_new['c']}</div><div class="stat-label">Новых задач</div></div>
       <div class="stat"><div class="stat-value">{tasks_done['c']}</div><div class="stat-label">Выполнено</div></div>
       <div class="stat"><div class="stat-value">{achievements_total['c']}</div><div class="stat-label">Достижений</div></div>
-      <div class="stat"><div class="stat-value">{points_total['c']}</div><div class="stat-label">Баллов у пользователей</div></div>
-      <div class="stat"><div class="stat-value">{points_awarded['c']}</div><div class="stat-label">Баллов начислено</div></div>
+      <div class="stat"><div class="stat-value">{points_total['c']}</div><div class="stat-label">TRGR у пользователей</div></div>
+      <div class="stat"><div class="stat-value">{points_awarded['c']}</div><div class="stat-label">TRGR начислено</div></div>
       <div class="stat"><div class="stat-value">{messages_active['c']}</div><div class="stat-label">Шаблонов сообщений</div></div>
     </div>"""
 
@@ -955,7 +955,7 @@ async def dashboard(request: Request):
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:20px">
       <div class="card">
         <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">👥 Новые пользователи</h3>
-        <table><thead><tr><th>Имя</th><th>Уровень</th><th>Баллы</th><th>Серия</th><th>Дата</th></tr></thead>
+        <table><thead><tr><th>Имя</th><th>Уровень</th><th>TRGR</th><th>Серия</th><th>Дата</th></tr></thead>
         <tbody>{users_rows}</tbody></table>
         <div style="margin-top:12px"><a href="/users">Все пользователи →</a></div>
       </div>
@@ -1063,7 +1063,7 @@ async def users_list(request: Request, search: str = ""):
       <table>
         <thead><tr>
           <th>Имя</th><th>Telegram ID</th><th>Уровень</th>
-          <th>Баллы</th><th>XP</th><th>Триггеры</th><th>Серия</th><th>Подписка</th><th>Дата</th>
+          <th>TRGR</th><th>XP</th><th>Триггеры</th><th>Серия</th><th>Подписка</th><th>Дата</th>
         </tr></thead>
         <tbody>{rows}</tbody>
       </table>
@@ -1132,7 +1132,7 @@ async def user_detail(request: Request, telegram_id: int):
         <div style="font-size:13px;display:flex;flex-direction:column;gap:8px">
           <div>🆔 {user['telegram_id']}</div>
           <div>{level_badge(user.get('xp_balance', 0))}</div>
-          <div>💰 <b>{user.get('points_balance', 0)}</b> баллов</div>
+          <div>💰 <b>{user.get('points_balance', 0)}</b> TRGR</div>
           <div>⚡ {user.get('xp_balance', 0)} XP</div>
           <div>🔥 Серия: {user.get('streak_days', 0)} дн.</div>
           <div>📝 Триггеров: {len(triggers)}</div>
@@ -1140,7 +1140,7 @@ async def user_detail(request: Request, telegram_id: int):
           <div style="color:#9CA3AF">С {fmt_date(user['created_at'], short=True)}</div>
         </div>
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid #F3F4F6">
-          <p style="font-size:13px;font-weight:600;margin-bottom:8px">Скорректировать баллы:</p>
+          <p style="font-size:13px;font-weight:600;margin-bottom:8px">Скорректировать TRGR:</p>
           <form method="post" action="/users/{telegram_id}/adjust-points" style="display:flex;flex-direction:column;gap:8px">
             <input type="number" name="delta" placeholder="+100 или -50" style="width:100%">
             <input type="text" name="reason" placeholder="Причина" style="width:100%">
@@ -1557,14 +1557,14 @@ async def points_page(request: Request):
     content = f'''
     <div class="card">
         <p style="margin-bottom:24px;color:#6B7280">
-            Управление правилами начисления баллов. Изменения вступают в силу сразу.
+            Управление правилами начисления TRGR. Изменения вступают в силу сразу.
         </p>
         <table>
             <thead>
                 <tr>
                     <th style="width:180px">Правило</th>
                     <th style="flex:1">Описание</th>
-                    <th style="width:200px">Баллы</th>
+                    <th style="width:200px">TRGR</th>
                 </tr>
             </thead>
             <tbody>{table_html}</tbody>
@@ -1597,7 +1597,7 @@ MENU_LABELS = {
     "show_tasks":         ("✅ Мои задачи",       "Управление задачами"),
     "show_progress":      ("📊 Мой прогресс",    "Статистика и достижения"),
     "show_checkin":       ("✅ Быстрый чек-ин",  "Быстрая проверка состояния"),
-    "show_shop":          ("🛍 Магазин",          "Магазин для трат баллов"),
+    "show_shop":          ("🛍 Магазин",          "Магазин для трат TRGR"),
     "show_stop":          ("🛑 Стоп",             "Экстренная остановка триггера"),
     "show_settings":      ("⚙️ Настройки",        "Настройки уведомлений"),
 }
