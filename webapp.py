@@ -480,6 +480,14 @@ const initData = tg.initData || '';
 let currentTab = 'profile';
 let cache = {};
 
+// Очищаем кэш Telegram при загрузке
+tg.ready(() => {
+  // Принудительная перезагрузка данных
+  if (cache && cache.referral_code) {
+    cache = {};
+  }
+});
+
 // ─── API helper ───────────────────────────────────────────────────────────────
 async function api(path, options = {}) {
   // Добавляем timestamp чтобы избежать кэширования
