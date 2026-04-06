@@ -35,3 +35,8 @@ game.db
 # Временные файлы
 tmp/
 temp/
+
+# Vosk модель (не добавляем в git - большой файл)
+vosk-model-small-ru-0.22/
+*.ogg
+*.wav

@@ -157,3 +157,38 @@ sqlite3 /opt/mindgame/game.db "SELECT referral_code FROM users WHERE telegram_id
 ---
 
 **Status:** ✅ Stable and Working
+
+---
+
+## 🎤 Vosk Voice Model
+
+### Installation
+```bash
+cd /opt/mindgame
+bash setup_vosk.sh
+```
+
+### Manual Installation
+```bash
+cd /opt/mindgame
+wget https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip
+unzip vosk-model-small-ru-0.22.zip
+rm vosk-model-small-ru-0.22.zip
+systemctl restart mindgame-bot
+```
+
+### Why It Disappears
+- Model is NOT in git (50MB file)
+- Deleted during server cleanups (`rm -rf`)
+- Not restored from backups (only database is backed up)
+
+### Prevention
+- Model is in `.gitignore` to prevent accidental commits
+- Setup script `setup_vosk.sh` for easy reinstallation
+- Documentation in this file
+
+### Verification
+1. Send voice message to bot
+2. Bot should recognize text
+3. Trigger should be created automatically
+
